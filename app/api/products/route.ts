@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { products, categories } from '@/lib/db/schema';
 import { eq, and, gte, lte, ilike, or, inArray, desc, asc, isNotNull } from 'drizzle-orm';
+import { createBuildSafeResponse } from '@/lib/build-utils';
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({
+      products: [],
+      total: 0,
+      page: 1,
+      totalPages: 0,
+    });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse);
+    }
+
     const { searchParams } = new URL(request.url);
     
     // Parse query parameters

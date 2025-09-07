@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db/drizzle';
 import { carts, cartItems, products } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { createBuildSafeResponse, buildSafeDbOperation } from '@/lib/build-utils';
 
 // Schema for cart operations
 const CartItemSchema = z.object({
@@ -20,6 +21,18 @@ const UpdateCartSchema = z.object({
 // GET /api/cart - Get cart items for session
 export async function GET(request: NextRequest) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({
+      cartId: null,
+      items: [],
+      totalItems: 0,
+      totalAmount: 0,
+    });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse);
+    }
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
 
@@ -87,6 +100,16 @@ export async function GET(request: NextRequest) {
 // POST /api/cart - Add item to cart
 export async function POST(request: NextRequest) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({
+      success: true,
+      message: 'Item added to cart',
+    });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse);
+    }
+
     const body = await request.json();
     const { productId: productIdParsed, quantity, sessionId } = CartItemSchema.parse(body);
     const productId = Number(productIdParsed);
@@ -175,6 +198,15 @@ export async function POST(request: NextRequest) {
 // PUT /api/cart - Update cart item quantity
 export async function PUT(request: NextRequest) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({
+      success: true,
+    });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse);
+    }
+
     const body = await request.json();
     const { productId: productIdParsed, quantity, sessionId } = UpdateCartSchema.parse(body);
     const productId = Number(productIdParsed);
@@ -239,6 +271,15 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/cart - Clear cart or remove specific item
 export async function DELETE(request: NextRequest) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({
+      success: true,
+    });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse);
+    }
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
     const productId = searchParams.get('productId');

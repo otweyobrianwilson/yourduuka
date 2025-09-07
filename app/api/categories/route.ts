@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { categories, products } from '@/lib/db/schema';
 import { eq, count } from 'drizzle-orm';
+import { createBuildSafeResponse } from '@/lib/build-utils';
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({
+      categories: [],
+    });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse);
+    }
+
     const { searchParams } = new URL(request.url);
     const includeProductCount = searchParams.get('includeProductCount') === 'true';
 
@@ -49,6 +59,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({
+      success: true,
+      message: 'Category created',
+    });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse, { status: 201 });
+    }
+
     // This would typically require admin authentication
     const body = await request.json();
     

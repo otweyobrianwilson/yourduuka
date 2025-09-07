@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createBuildSafeResponse } from '@/lib/build-utils';
 import { db } from '@/lib/db/drizzle';
 import { orders, orderItems } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -8,6 +9,13 @@ export async function GET(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse(null);
+    
+    if (buildResponse) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
     const { orderId } = await params;
 
     // Get order details

@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { products, categories } from '@/lib/db/schema';
 import { eq, and, ne } from 'drizzle-orm';
+import { createBuildSafeResponse } from '@/lib/build-utils';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse(null);
+    
+    if (buildResponse) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
     const { slug } = await params;
 
     // Get product with category information
@@ -101,6 +109,16 @@ export async function PUT(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({
+      success: true,
+      message: 'Product updated',
+    });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse);
+    }
+
     // This would typically require admin authentication
     const { slug } = await params;
     const body = await request.json();

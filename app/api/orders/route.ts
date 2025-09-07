@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createBuildSafeResponse } from '@/lib/build-utils';
 import { z } from 'zod';
 import { db } from '@/lib/db/drizzle';
 import { orders, orderItems, products } from '@/lib/db/schema';
@@ -45,6 +46,16 @@ function generateOrderNumber(): string {
 // POST /api/orders - Create new order
 export async function POST(request: NextRequest) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({
+      success: true,
+      orderId: 'build-time-order',
+    });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse, { status: 201 });
+    }
+
     const body = await request.json();
     const orderData = CreateOrderSchema.parse(body);
 
@@ -164,6 +175,15 @@ export async function POST(request: NextRequest) {
 // GET /api/orders - Get orders (for admin or customer)
 export async function GET(request: NextRequest) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({
+      orders: [],
+    });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse);
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
