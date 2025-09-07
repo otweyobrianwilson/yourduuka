@@ -1,6 +1,3 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from './schema';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -13,19 +10,30 @@ const isBuildTime = (
   process.env.NEXT_PHASE === 'phase-production-build'
 ) && !process.env.POSTGRES_URL;
 
-if (!process.env.POSTGRES_URL) {
+let client: any = null;
+let db: any = null;
+
+if (process.env.POSTGRES_URL && !isBuildTime) {
+  try {
+    // Dynamic imports to avoid build-time issues
+    const { drizzle } = require('drizzle-orm/postgres-js');
+    const postgres = require('postgres');
+    const schema = require('./schema');
+    
+    client = postgres(process.env.POSTGRES_URL);
+    db = drizzle(client, { schema });
+    
+    console.log('✅ Database connection established');
+  } catch (error) {
+    console.error('⚠️ Database connection failed:', error.message);
+    throw error;
+  }
+} else {
   if (isBuildTime) {
-    console.warn('⚠️  Database connection skipped during build time (POSTGRES_URL not available)');
+    console.warn('⚠️ Database connection skipped during build time (POSTGRES_URL not available)');
   } else {
     throw new Error('POSTGRES_URL environment variable is not set');
   }
 }
 
-// Create a mock client for build time
-const mockClient = {
-  query: () => Promise.resolve({ rows: [] }),
-  end: () => Promise.resolve(),
-} as any;
-
-export const client = process.env.POSTGRES_URL ? postgres(process.env.POSTGRES_URL) : mockClient;
-export const db = drizzle(client, { schema });
+export { client, db };

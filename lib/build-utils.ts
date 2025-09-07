@@ -42,6 +42,15 @@ export function createBuildSafeResponse(data: any = {}) {
 }
 
 /**
+ * Throws an error if called during build time to prevent database operations
+ */
+export function assertNotBuildTime(context: string = 'Database operation') {
+  if (isBuildTime()) {
+    throw new Error(`⚠️ ${context} blocked during build time - no database available`);
+  }
+}
+
+/**
  * Wrapper for database operations that should be skipped during build time
  */
 export async function buildSafeDbOperation<T>(

@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db } from '@/lib/db/drizzle';
-import { carts, cartItems, products } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { createBuildSafeResponse, buildSafeDbOperation } from '@/lib/build-utils';
+import { createBuildSafeResponse } from '@/lib/build-utils';
+import { getDb, getSchema, getDrizzleORM } from '@/lib/db/safe-drizzle';
+
+// Get safe database references
+function getSafeDbRefs() {
+  const db = getDb();
+  const schema = getSchema();
+  const orm = getDrizzleORM();
+  
+  if (!db || !schema || !orm) {
+    return null;
+  }
+  
+  return {
+    db,
+    carts: schema.carts,
+    cartItems: schema.cartItems,
+    products: schema.products,
+    eq: orm.eq,
+    and: orm.and,
+  };
+}
 
 // Schema for cart operations
 const CartItemSchema = z.object({
@@ -21,17 +39,19 @@ const UpdateCartSchema = z.object({
 // GET /api/cart - Get cart items for session
 export async function GET(request: NextRequest) {
   try {
-    // Check if we're in build time and return safe response
-    const buildResponse = createBuildSafeResponse({
-      cartId: null,
-      items: [],
-      totalItems: 0,
-      totalAmount: 0,
-    });
-    
-    if (buildResponse) {
+    // Get safe database references
+    const dbRefs = getSafeDbRefs();
+    if (!dbRefs) {
+      const buildResponse = createBuildSafeResponse({
+        cartId: null,
+        items: [],
+        totalItems: 0,
+        totalAmount: 0,
+      });
       return NextResponse.json(buildResponse);
     }
+    
+    const { db, carts, cartItems, products, eq } = dbRefs;
 
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
@@ -100,15 +120,17 @@ export async function GET(request: NextRequest) {
 // POST /api/cart - Add item to cart
 export async function POST(request: NextRequest) {
   try {
-    // Check if we're in build time and return safe response
-    const buildResponse = createBuildSafeResponse({
-      success: true,
-      message: 'Item added to cart',
-    });
-    
-    if (buildResponse) {
+    // Get safe database references
+    const dbRefs = getSafeDbRefs();
+    if (!dbRefs) {
+      const buildResponse = createBuildSafeResponse({
+        success: true,
+        message: 'Item added to cart',
+      });
       return NextResponse.json(buildResponse);
     }
+    
+    const { db, carts, cartItems, products, eq, and } = dbRefs;
 
     const body = await request.json();
     const { productId: productIdParsed, quantity, sessionId } = CartItemSchema.parse(body);
@@ -198,14 +220,16 @@ export async function POST(request: NextRequest) {
 // PUT /api/cart - Update cart item quantity
 export async function PUT(request: NextRequest) {
   try {
-    // Check if we're in build time and return safe response
-    const buildResponse = createBuildSafeResponse({
-      success: true,
-    });
-    
-    if (buildResponse) {
+    // Get safe database references
+    const dbRefs = getSafeDbRefs();
+    if (!dbRefs) {
+      const buildResponse = createBuildSafeResponse({
+        success: true,
+      });
       return NextResponse.json(buildResponse);
     }
+    
+    const { db, carts, cartItems, eq, and } = dbRefs;
 
     const body = await request.json();
     const { productId: productIdParsed, quantity, sessionId } = UpdateCartSchema.parse(body);
@@ -271,14 +295,16 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/cart - Clear cart or remove specific item
 export async function DELETE(request: NextRequest) {
   try {
-    // Check if we're in build time and return safe response
-    const buildResponse = createBuildSafeResponse({
-      success: true,
-    });
-    
-    if (buildResponse) {
+    // Get safe database references
+    const dbRefs = getSafeDbRefs();
+    if (!dbRefs) {
+      const buildResponse = createBuildSafeResponse({
+        success: true,
+      });
       return NextResponse.json(buildResponse);
     }
+    
+    const { db, carts, cartItems, eq, and } = dbRefs;
 
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
