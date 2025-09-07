@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { products, categories } from '@/lib/db/schema';
-import { eq, and, gte, lte, ilike, or, inArray, desc, asc } from 'drizzle-orm';
+import { eq, and, gte, lte, ilike, or, inArray, desc, asc, isNotNull } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     if (onSale) {
       conditions.push(
         and(
-          products.comparePrice !== null,
+          isNotNull(products.comparePrice),
           gte(products.comparePrice, products.price)
         )
       );
@@ -173,27 +173,33 @@ export async function GET(request: NextRequest) {
       })
       .from(products);
 
-    // Apply conditions
+    // Apply conditions and execute query
+    let productsResult;
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      productsResult = await query
+        .where(and(...conditions))
+        .orderBy(orderBy)
+        .limit(limit)
+        .offset(offset);
+    } else {
+      productsResult = await query
+        .orderBy(orderBy)
+        .limit(limit)
+        .offset(offset);
     }
-
-    // Apply sorting, limit and offset
-    const productsResult = await query
-      .orderBy(orderBy)
-      .limit(limit)
-      .offset(offset);
 
     // Get total count for pagination
-    let countQuery = db
-      .select({ count: products.id })
-      .from(products);
-
+    let countResult;
     if (conditions.length > 0) {
-      countQuery = countQuery.where(and(...conditions));
+      countResult = await db
+        .select({ count: products.id })
+        .from(products)
+        .where(and(...conditions));
+    } else {
+      countResult = await db
+        .select({ count: products.id })
+        .from(products);
     }
-
-    const countResult = await countQuery;
     const total = countResult.length;
 
     return NextResponse.json({

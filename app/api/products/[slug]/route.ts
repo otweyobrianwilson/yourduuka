@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { products, categories } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ne } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -55,29 +55,32 @@ export async function GET(
     }
 
     // Get related products (same category, different product)
-    const relatedProducts = await db
-      .select({
-        id: products.id,
-        name: products.name,
-        slug: products.slug,
-        price: products.price,
-        comparePrice: products.comparePrice,
-        images: products.images,
-        brand: products.brand,
-        size: products.size,
-        color: products.color,
-        isFeatured: products.isFeatured,
-      })
-      .from(products)
-      .where(
-        and(
-          eq(products.categoryId, product.categoryId),
-          eq(products.isActive, true),
-          // Exclude current product
-          products.id !== product.id
+    let relatedProducts: any[] = [];
+    if (product.categoryId) {
+      relatedProducts = await db
+        .select({
+          id: products.id,
+          name: products.name,
+          slug: products.slug,
+          price: products.price,
+          comparePrice: products.comparePrice,
+          images: products.images,
+          brand: products.brand,
+          size: products.size,
+          color: products.color,
+          isFeatured: products.isFeatured,
+        })
+        .from(products)
+        .where(
+          and(
+            eq(products.categoryId, product.categoryId),
+            eq(products.isActive, true),
+            // Exclude current product
+            ne(products.id, product.id)
+          )
         )
-      )
-      .limit(4);
+        .limit(4);
+    }
 
     return NextResponse.json({
       product,
@@ -95,11 +98,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     // This would typically require admin authentication
-    const { slug } = params;
+    const { slug } = await params;
     const body = await request.json();
 
     // Update product
@@ -154,11 +157,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     // This would typically require admin authentication
-    const { slug } = params;
+    const { slug } = await params;
 
     // Soft delete by setting isActive to false
     const [deletedProduct] = await db

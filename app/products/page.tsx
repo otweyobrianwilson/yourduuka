@@ -19,14 +19,16 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
-    category: '',
-    minPrice: '',
-    maxPrice: '',
-    brand: '',
-    size: '',
-    color: '',
-    sort: 'name'
+    categories: [] as string[],
+    brands: [] as string[],
+    sizes: [] as string[],
+    colors: [] as string[],
+    genders: [] as string[],
+    priceRange: [0, 1000] as [number, number],
+    inStock: false,
+    onSale: false
   });
+  const [sort, setSort] = useState('name');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,13 +37,16 @@ export default function ProductsPage() {
         
         // Build query parameters
         const params = new URLSearchParams();
-        if (filters.category) params.append('category', filters.category);
-        if (filters.minPrice) params.append('minPrice', filters.minPrice);
-        if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
-        if (filters.brand) params.append('brand', filters.brand);
-        if (filters.size) params.append('size', filters.size);
-        if (filters.color) params.append('color', filters.color);
-        if (filters.sort) params.append('sort', filters.sort);
+        if (filters.categories.length > 0) params.append('categories', filters.categories.join(','));
+        if (filters.brands.length > 0) params.append('brands', filters.brands.join(','));
+        if (filters.sizes.length > 0) params.append('sizes', filters.sizes.join(','));
+        if (filters.colors.length > 0) params.append('colors', filters.colors.join(','));
+        if (filters.genders.length > 0) params.append('genders', filters.genders.join(','));
+        if (filters.priceRange[0] > 0) params.append('minPrice', filters.priceRange[0].toString());
+        if (filters.priceRange[1] < 1000) params.append('maxPrice', filters.priceRange[1].toString());
+        if (filters.inStock) params.append('inStock', 'true');
+        if (filters.onSale) params.append('onSale', 'true');
+        if (sort) params.append('sort', sort);
         
         // Fetch products and categories
         const [productsResponse, categoriesResponse] = await Promise.all([
@@ -69,19 +74,21 @@ export default function ProductsPage() {
   }, [filters]);
 
   const handleFilterChange = (newFilters: any) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
+    setFilters(newFilters);
   };
 
   const clearFilters = () => {
     setFilters({
-      category: '',
-      minPrice: '',
-      maxPrice: '',
-      brand: '',
-      size: '',
-      color: '',
-      sort: 'name'
+      categories: [],
+      brands: [],
+      sizes: [],
+      colors: [],
+      genders: [],
+      priceRange: [0, 1000],
+      inStock: false,
+      onSale: false
     });
+    setSort('name');
   };
 
   if (loading) {
@@ -119,7 +126,16 @@ export default function ProductsPage() {
     );
   }
 
-  const activeFiltersCount = Object.values(filters).filter(value => value && value !== 'name').length;
+  const activeFiltersCount = (
+    filters.categories.length +
+    filters.brands.length +
+    filters.sizes.length +
+    filters.colors.length +
+    filters.genders.length +
+    (filters.priceRange[0] > 0 || filters.priceRange[1] < 1000 ? 1 : 0) +
+    (filters.inStock ? 1 : 0) +
+    (filters.onSale ? 1 : 0)
+  );
 
   return (
     <>
@@ -196,10 +212,11 @@ export default function ProductsPage() {
             {showFilters && data && (
               <div className="lg:col-span-1 mb-8 lg:mb-0">
                 <ProductFilter
-                  categories={data.categories}
                   filters={filters}
-                  onFilterChange={handleFilterChange}
-                  onClearFilters={clearFilters}
+                  onFiltersChange={handleFilterChange}
+                  isOpen={showFilters}
+                  onToggle={() => setShowFilters(!showFilters)}
+                  onClear={clearFilters}
                 />
               </div>
             )}

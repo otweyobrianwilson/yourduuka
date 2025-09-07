@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db/drizzle';
 import { orders, orderItems, products } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 // Schema for order creation
 const CustomerInfoSchema = z.object({
@@ -63,9 +63,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (product.quantity < item.quantity) {
+      const availableQuantity = product.quantity || 0;
+      if (availableQuantity < item.quantity) {
         return NextResponse.json(
-          { error: `Insufficient stock for ${product.name}. Available: ${product.quantity}, Requested: ${item.quantity}` },
+          { error: `Insufficient stock for ${product.name}. Available: ${availableQuantity}, Requested: ${item.quantity}` },
           { status: 400 }
         );
       }
@@ -123,10 +124,11 @@ export async function POST(request: NextRequest) {
         .where(eq(products.id, item.productId))
         .limit(1);
         
+      const currentQuantity = currentProduct.quantity || 0;
       await db
         .update(products)
         .set({
-          quantity: currentProduct.quantity - item.quantity,
+          quantity: currentQuantity - item.quantity,
           updatedAt: new Date(),
         })
         .where(eq(products.id, item.productId));
@@ -168,23 +170,43 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const phone = searchParams.get('phone');
 
-    let query = db.select().from(orders);
-
-    // Apply filters
-    if (status) {
-      query = query.where(eq(orders.orderStatus, status as any));
-    }
-
-    if (phone) {
-      query = query.where(eq(orders.customerPhone, phone));
-    }
-
     // Add pagination
     const offset = (page - 1) * limit;
-    const ordersList = await query
-      .orderBy(orders.createdAt)
-      .limit(limit)
-      .offset(offset);
+    
+    // Build query with conditions
+    let ordersList;
+    if (status && phone) {
+      ordersList = await db
+        .select()
+        .from(orders)
+        .where(and(eq(orders.status, status as any), eq(orders.customerPhone, phone)))
+        .orderBy(orders.createdAt)
+        .limit(limit)
+        .offset(offset);
+    } else if (status) {
+      ordersList = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.status, status as any))
+        .orderBy(orders.createdAt)
+        .limit(limit)
+        .offset(offset);
+    } else if (phone) {
+      ordersList = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.customerPhone, phone))
+        .orderBy(orders.createdAt)
+        .limit(limit)
+        .offset(offset);
+    } else {
+      ordersList = await db
+        .select()
+        .from(orders)
+        .orderBy(orders.createdAt)
+        .limit(limit)
+        .offset(offset);
+    }
 
     // Get total count for pagination
     const totalQuery = db.select().from(orders);

@@ -6,13 +6,13 @@ import { eq, and } from 'drizzle-orm';
 
 // Schema for cart operations
 const CartItemSchema = z.object({
-  productId: z.string(),
+  productId: z.string().transform(val => parseInt(val, 10)),
   quantity: z.number().min(1),
   sessionId: z.string(),
 });
 
 const UpdateCartSchema = z.object({
-  productId: z.string(),
+  productId: z.string().transform(val => parseInt(val, 10)),
   quantity: z.number().min(0),
   sessionId: z.string(),
 });
@@ -88,7 +88,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, quantity, sessionId } = CartItemSchema.parse(body);
+    const { productId: productIdParsed, quantity, sessionId } = CartItemSchema.parse(body);
+    const productId = Number(productIdParsed);
 
     // Get or create cart for session
     let [cart] = await db
@@ -175,7 +176,8 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, quantity, sessionId } = UpdateCartSchema.parse(body);
+    const { productId: productIdParsed, quantity, sessionId } = UpdateCartSchema.parse(body);
+    const productId = Number(productIdParsed);
 
     // Get cart for session
     const [cart] = await db
@@ -264,12 +266,13 @@ export async function DELETE(request: NextRequest) {
 
     if (productId) {
       // Remove specific item
+      const productIdNum = parseInt(productId, 10);
       await db
         .delete(cartItems)
         .where(
           and(
             eq(cartItems.cartId, cart.id),
-            eq(cartItems.productId, productId)
+            eq(cartItems.productId, productIdNum)
           )
         );
     } else {
