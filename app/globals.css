@@ -1,0 +1,418 @@
+@import "tailwindcss";
+/*
+  ---break---
+*/
+@custom-variant dark (&:is(.dark *));
+
+@import "tw-animate-css";
+
+@variant dark (&:is(.dark *));
+
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
+
+@layer utilities {
+  body {
+    font-family: "Inter", "Manrope", Arial, Helvetica, sans-serif;
+  }
+
+  /* YourDuka Brand Colors - Chinese/Japanese Aesthetic */
+  .text-brand-primary {
+    color: #1a1a1a; /* Deep charcoal */
+  }
+  
+  .text-brand-accent {
+    color: #d63384; /* Elegant pink */
+  }
+  
+  .text-brand-secondary {
+    color: #495057; /* Darker muted gray for better contrast */
+  }
+  
+  /* Text variations for better contrast */
+  .text-brand-muted {
+    color: #6c757d; /* Light muted gray */
+  }
+  
+  .text-brand-light {
+    color: #8d9297; /* Very light gray */
+  }
+  
+  .text-brand-dark {
+    color: #343a40; /* Dark gray */
+  }
+  
+  .text-brand-white {
+    color: #ffffff; /* Pure white */
+  }
+  
+  /* Readable text on colored backgrounds */
+  .text-on-accent {
+    color: #ffffff; /* White on accent backgrounds */
+  }
+  
+  .text-on-primary {
+    color: #ffffff; /* White on primary backgrounds */
+  }
+  
+  .text-on-light {
+    color: #1a1a1a; /* Dark on light backgrounds */
+  }
+  
+  .bg-brand-primary {
+    background-color: #1a1a1a;
+  }
+  
+  .bg-brand-accent {
+    background-color: #d63384;
+  }
+  
+  .bg-brand-light {
+    background-color: #f8f9fa;
+  }
+  
+  .bg-brand-cream {
+    background-color: #faf8f5;
+  }
+  
+  .bg-brand-soft {
+    background-color: #ffffff;
+  }
+  
+  .bg-brand-muted {
+    background-color: #e9ecef;
+  }
+  
+  .border-brand-primary {
+    border-color: #1a1a1a;
+  }
+  
+  .border-brand-accent {
+    border-color: #d63384;
+  }
+  
+  .border-brand-light {
+    border-color: #e9ecef;
+  }
+  
+  .border-brand-muted {
+    border-color: #dee2e6;
+  }
+  
+  .border-brand-soft {
+    border-color: #f1f3f4;
+  }
+
+  /* Product Card Hover Effects - Japanese Minimalism */
+  .product-card-hover {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 0;
+  }
+  
+  .product-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Japanese Typography */
+  .japanese-title {
+    font-weight: 300;
+    letter-spacing: 2px;
+    line-height: 1.6;
+  }
+  
+  .chinese-accent {
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+  
+  /* Minimalist Elements */
+  .minimal-border {
+    border: 1px solid #e9ecef;
+    border-radius: 0;
+  }
+  
+  .clean-shadow {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+  
+  /* Enhanced visibility utilities */
+  .text-readable {
+    color: #1a1a1a;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+  
+  .text-readable-light {
+    color: #495057;
+  }
+  
+  .text-readable-muted {
+    color: #6c757d;
+  }
+  
+  .bg-readable {
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+  
+  .border-readable {
+    border-color: rgba(233, 236, 239, 0.8);
+  }
+  
+  .subtle-gradient {
+    background: linear-gradient(135deg, #faf8f5 0%, #f8f9fa 100%);
+  }
+
+  /* Button Variants - Minimalist Asian Style */
+  .btn-brand-primary {
+    background-color: #1a1a1a;
+    color: white;
+    border: none;
+    border-radius: 0;
+    transition: all 0.3s ease;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+  }
+  
+  .btn-brand-primary:hover {
+    background-color: #333333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26, 26, 26, 0.3);
+  }
+  
+  .btn-brand-secondary {
+    background-color: transparent;
+    color: #1a1a1a;
+    border: 1px solid #1a1a1a;
+    border-radius: 0;
+    transition: all 0.3s ease;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+  }
+  
+  .btn-brand-secondary:hover {
+    background-color: #1a1a1a;
+    color: white;
+  }
+  
+  .btn-brand-accent {
+    background-color: #d63384;
+    color: white;
+    border: none;
+    border-radius: 0;
+    transition: all 0.3s ease;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+  }
+  
+  .btn-brand-accent:hover {
+    background-color: #b02a5b;
+    transform: translateY(-1px);
+  }
+  
+  /* Minimal button with better contrast */
+  .btn-minimal {
+    background-color: #1a1a1a;
+    color: #ffffff;
+    border: none;
+    border-radius: 0;
+    transition: all 0.3s ease;
+    font-weight: 300;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+  
+  .btn-minimal:hover {
+    background-color: #d63384;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(214, 51, 132, 0.3);
+  }
+  
+  .btn-minimal:disabled {
+    background-color: #6c757d;
+    color: #ffffff;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  /* Enhanced shadow utilities */
+  .shadow-soft {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  
+  .shadow-elegant {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+  
+  .shadow-hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Placeholder text colors */
+  .placeholder-brand-muted::placeholder {
+    color: #6c757d;
+    opacity: 0.7;
+  }
+  
+  .placeholder-brand-light::placeholder {
+    color: #8d9297;
+    opacity: 0.6;
+  }
+  
+  /* Enhanced readability classes */
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  
+  /* Scale transforms */
+  .hover\:scale-102:hover {
+    transform: scale(1.02);
+  }
+  
+  .group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+  }
+  
+  .group:hover .group-hover\:scale-102 {
+    transform: scale(1.02);
+  }
+  
+  /* Focus styles for accessibility */
+  .focus-ring:focus {
+    outline: 2px solid #d63384;
+    outline-offset: 2px;
+  }
+  
+  .focus-visible:focus-visible {
+    outline: 2px solid #d63384;
+    outline-offset: 2px;
+  }
+}
+
+/* Theme transitions */
+@layer base {
+  * {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Override for specific elements that shouldn't transition */
+  input, textarea, select {
+    transition: none;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 210 11% 15%; /* Deep charcoal #1a1a1a */
+    --primary-accent: 330 78% 56%; /* Elegant pink #d63384 */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    --radius: 0.6rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 210 11% 15%; /* Deep charcoal in dark mode */
+    --primary-accent: 330 78% 56%; /* Elegant pink in dark mode */
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 5% 64.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
