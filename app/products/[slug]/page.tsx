@@ -8,6 +8,9 @@ import ProductImageGallery from '@/components/products/product-image-gallery';
 import RelatedProducts from '@/components/products/related-products';
 import AddToCartButton from '@/components/products/add-to-cart-button';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 interface ProductPageProps {
   params: Promise<{
     slug: string;

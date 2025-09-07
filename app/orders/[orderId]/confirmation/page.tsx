@@ -4,6 +4,9 @@ import { CheckCircle, Truck, Phone, Mail, MapPin, Clock, Package } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 interface OrderConfirmationProps {
   params: Promise<{
     orderId: string;
