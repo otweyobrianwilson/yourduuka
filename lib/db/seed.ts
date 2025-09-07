@@ -1,9 +1,18 @@
-import { db } from './drizzle';
-import { users, categories, products } from './schema';
+import { getDb, getSchema } from './safe-drizzle';
 import { hashPassword } from '@/lib/auth/session';
 import slugify from 'slugify';
 
 async function seed() {
+  const db = getDb();
+  const schema = getSchema();
+  
+  if (!db || !schema) {
+    console.error('⚠️ Database not available for seeding');
+    throw new Error('Database connection not available');
+  }
+  
+  const { users, categories, products } = schema;
+  
   // Create admin user
   const email = 'admin@yourduka.com';
   const password = 'admin123';

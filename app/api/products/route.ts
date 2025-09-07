@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db/drizzle';
-import { products, categories } from '@/lib/db/schema';
-import { eq, and, gte, lte, ilike, or, inArray, desc, asc, isNotNull } from 'drizzle-orm';
+import { getDb, getSchema, getDrizzleORM } from '@/lib/db/safe-drizzle';
 import { createBuildSafeResponse } from '@/lib/build-utils';
 
 export async function GET(request: NextRequest) {
@@ -17,6 +15,22 @@ export async function GET(request: NextRequest) {
     if (buildResponse) {
       return NextResponse.json(buildResponse);
     }
+    
+    // Get safe database references
+    const db = getDb();
+    const schema = getSchema();
+    const drizzleORM = getDrizzleORM();
+    
+    if (!db || !schema || !drizzleORM) {
+      console.error('⚠️ Database not available in runtime');
+      return NextResponse.json(
+        { error: 'Database connection not available' },
+        { status: 500 }
+      );
+    }
+    
+    const { products, categories } = schema;
+    const { eq, and, gte, lte, ilike, or, inArray, desc, asc, isNotNull } = drizzleORM;
 
     const { searchParams } = new URL(request.url);
     
@@ -38,7 +52,7 @@ export async function GET(request: NextRequest) {
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
     // Parse array parameters
-    const categories = searchParams.get('categories')?.split(',').filter(Boolean) || [];
+    const categoriesFilter = searchParams.get('categories')?.split(',').filter(Boolean) || [];
     const brands = searchParams.get('brands')?.split(',').filter(Boolean) || [];
     const sizes = searchParams.get('sizes')?.split(',').filter(Boolean) || [];
     const colors = searchParams.get('colors')?.split(',').filter(Boolean) || [];
@@ -67,10 +81,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Categories filter (array)
-    if (categories.length > 0) {
+    if (categoriesFilter.length > 0) {
       // Note: This assumes categories are stored by name in a field
       // You may need to adjust based on your actual schema
-      conditions.push(inArray(products.brand, categories)); // Adjust this field
+      conditions.push(inArray(products.brand, categoriesFilter)); // Adjust this field
     }
 
     // Brand filter
@@ -242,6 +256,26 @@ export async function POST(request: NextRequest) {
     // For now, we'll create a basic implementation
     
     const body = await request.json();
+    
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({ id: 0 });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse);
+    }
+    
+    // Get safe database references
+    const db = getDb();
+    const schema = getSchema();
+    
+    if (!db || !schema) {
+      return NextResponse.json(
+        { error: 'Database connection not available' },
+        { status: 500 }
+      );
+    }
+    
+    const { products } = schema;
     
     // Create new product
     const [newProduct] = await db

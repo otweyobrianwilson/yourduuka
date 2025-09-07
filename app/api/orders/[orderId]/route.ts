@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBuildSafeResponse } from '@/lib/build-utils';
-import { db } from '@/lib/db/drizzle';
-import { orders, orderItems } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { getDb, getSchema, getDrizzleORM } from '@/lib/db/safe-drizzle';
 
 export async function GET(
   request: NextRequest,
@@ -15,6 +13,21 @@ export async function GET(
     if (buildResponse) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
+    
+    // Get safe database references
+    const db = getDb();
+    const schema = getSchema();
+    const drizzleORM = getDrizzleORM();
+    
+    if (!db || !schema || !drizzleORM) {
+      return NextResponse.json(
+        { error: 'Database connection not available' },
+        { status: 500 }
+      );
+    }
+    
+    const { orders, orderItems } = schema;
+    const { eq } = drizzleORM;
 
     const { orderId } = await params;
 
@@ -58,6 +71,28 @@ export async function PUT(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
+    // Check if we're in build time and return safe response
+    const buildResponse = createBuildSafeResponse({ success: true });
+    
+    if (buildResponse) {
+      return NextResponse.json(buildResponse);
+    }
+    
+    // Get safe database references
+    const db = getDb();
+    const schema = getSchema();
+    const drizzleORM = getDrizzleORM();
+    
+    if (!db || !schema || !drizzleORM) {
+      return NextResponse.json(
+        { error: 'Database connection not available' },
+        { status: 500 }
+      );
+    }
+    
+    const { orders } = schema;
+    const { eq } = drizzleORM;
+    
     const { orderId } = await params;
     const body = await request.json();
     const { orderStatus, paymentStatus } = body;

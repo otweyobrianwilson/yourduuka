@@ -1,12 +1,9 @@
 'use server';
 
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
-import { db } from '@/lib/db/drizzle';
+import { getDb, getSchema, getDrizzleORM } from '@/lib/db/safe-drizzle';
 import {
   User,
-  users,
-  activityLogs,
   type NewUser,
   type NewActivityLog,
   ActivityType,
@@ -26,6 +23,16 @@ async function logActivity(
   ipAddress?: string,
   metadata?: string
 ) {
+  const db = getDb();
+  const schema = getSchema();
+  
+  if (!db || !schema) {
+    console.warn('⚠️ Database not available for activity logging');
+    return;
+  }
+  
+  const { activityLogs } = schema;
+  
   const newActivity: NewActivityLog = {
     userId,
     action: type,
@@ -42,6 +49,21 @@ const signInSchema = z.object({
 
 export const signIn = validatedAction(signInSchema, async (data, formData) => {
   const { email, password } = data;
+  
+  const db = getDb();
+  const schema = getSchema();
+  const drizzleORM = getDrizzleORM();
+  
+  if (!db || !schema || !drizzleORM) {
+    return {
+      error: 'Database connection not available. Please try again later.',
+      email,
+      password
+    };
+  }
+  
+  const { users } = schema;
+  const { eq } = drizzleORM;
 
   const foundUser = await db
     .select()
@@ -87,6 +109,21 @@ const signUpSchema = z.object({
 
 export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const { email, password } = data;
+  
+  const db = getDb();
+  const schema = getSchema();
+  const drizzleORM = getDrizzleORM();
+  
+  if (!db || !schema || !drizzleORM) {
+    return {
+      error: 'Database connection not available. Please try again later.',
+      email,
+      password
+    };
+  }
+  
+  const { users } = schema;
+  const { eq } = drizzleORM;
 
   const existingUser = await db
     .select()
@@ -178,6 +215,22 @@ export const updatePassword = validatedActionWithUser(
     }
 
     const newPasswordHash = await hashPassword(newPassword);
+    
+    const db = getDb();
+    const schema = getSchema();
+    const drizzleORM = getDrizzleORM();
+    
+    if (!db || !schema || !drizzleORM) {
+      return {
+        currentPassword,
+        newPassword,
+        confirmPassword,
+        error: 'Database connection not available. Please try again later.'
+      };
+    }
+    
+    const { users } = schema;
+    const { eq } = drizzleORM;
 
     await Promise.all([
       db
@@ -209,6 +262,20 @@ export const deleteAccount = validatedActionWithUser(
         error: 'Incorrect password. Please try again.'
       };
     }
+    
+    const db = getDb();
+    const schema = getSchema();
+    const drizzleORM = getDrizzleORM();
+    
+    if (!db || !schema || !drizzleORM) {
+      return {
+        password,
+        error: 'Database connection not available. Please try again later.'
+      };
+    }
+    
+    const { users } = schema;
+    const { eq } = drizzleORM;
 
     await Promise.all([
       db
@@ -232,6 +299,21 @@ export const updateAccount = validatedActionWithUser(
   updateAccountSchema,
   async (data, _, user) => {
     const { name, email } = data;
+    
+    const db = getDb();
+    const schema = getSchema();
+    const drizzleORM = getDrizzleORM();
+    
+    if (!db || !schema || !drizzleORM) {
+      return {
+        name,
+        email,
+        error: 'Database connection not available. Please try again later.'
+      };
+    }
+    
+    const { users } = schema;
+    const { eq } = drizzleORM;
 
     const existingUser = await db
       .select()

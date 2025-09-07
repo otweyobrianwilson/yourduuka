@@ -4,24 +4,26 @@
 
 /**
  * Check if we're currently in build time
- * This happens when Vercel is building the app but environment variables aren't available
+ * This happens when Next.js is building the app, not when the app is running in production
  */
 export function isBuildTime(): boolean {
-  // During Vercel builds, we might not have database URLs available
-  // Also check for Vercel-specific build environment variables
-  const isVercelBuild = process.env.VERCEL === '1' || process.env.CI === 'true';
-  const hasNoDbUrl = !process.env.POSTGRES_URL;
-  const isProduction = process.env.NODE_ENV === 'production';
+  // The most reliable way to detect build time is via Next.js phase
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return true;
+  }
   
-  // Consider it build time if:
-  // 1. We're in a CI/Vercel environment without database URL, OR
-  // 2. We're in production without database URL, OR  
-  // 3. We're explicitly in a build context (Next.js sets this during builds)
-  return (
-    (isVercelBuild && hasNoDbUrl) ||
-    (isProduction && hasNoDbUrl) ||
-    process.env.NEXT_PHASE === 'phase-production-build'
-  );
+  // During build, these are typically not available or different
+  // Check for build-specific environment variables
+  const isBuildContext = process.env.NEXT_PHASE?.includes('build') || 
+                        process.env.npm_lifecycle_event?.includes('build') ||
+                        process.env.VERCEL_GIT_COMMIT_REF && !process.env.VERCEL_URL;
+  
+  // If we have a database URL, we're likely in runtime, not build time
+  const hasDbUrl = !!process.env.POSTGRES_URL;
+  
+  // Only consider it build time if we're in a build context AND don't have database URL
+  // This prevents runtime from being mistaken for build time
+  return isBuildContext && !hasDbUrl;
 }
 
 /**

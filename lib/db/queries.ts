@@ -1,8 +1,6 @@
-import { desc, and, eq, isNull } from 'drizzle-orm';
-import { db } from './drizzle';
-import { activityLogs, users } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
+import { getDb, getSchema, getDrizzleORM } from './safe-drizzle';
 
 export async function getUser() {
   const sessionCookie = (await cookies()).get('session');
@@ -22,6 +20,19 @@ export async function getUser() {
   if (new Date(sessionData.expires) < new Date()) {
     return null;
   }
+  
+  // Get safe database references
+  const db = getDb();
+  const schema = getSchema();
+  const drizzleORM = getDrizzleORM();
+  
+  if (!db || !schema || !drizzleORM) {
+    console.warn('⚠️ Database not available for user query');
+    return null;
+  }
+  
+  const { users } = schema;
+  const { and, eq, isNull } = drizzleORM;
 
   const user = await db
     .select()
@@ -41,6 +52,18 @@ export async function getActivityLogs() {
   if (!user) {
     throw new Error('User not authenticated');
   }
+  
+  // Get safe database references
+  const db = getDb();
+  const schema = getSchema();
+  const drizzleORM = getDrizzleORM();
+  
+  if (!db || !schema || !drizzleORM) {
+    throw new Error('Database not available');
+  }
+  
+  const { activityLogs, users } = schema;
+  const { desc, eq } = drizzleORM;
 
   return await db
     .select({

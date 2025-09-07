@@ -80,6 +80,5 @@ export function getDrizzleORM() {
   return _drizzleORM;
 }
 
-// Legacy exports for backward compatibility
-export const db = getDb();
-export const client = getClient();
+// Note: Legacy direct exports removed to prevent build-time initialization issues
+// Use getDb() and getClient() functions instead

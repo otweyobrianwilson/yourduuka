@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBuildSafeResponse } from '@/lib/build-utils';
 import { z } from 'zod';
-import { db } from '@/lib/db/drizzle';
-import { orders, orderItems, products } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { getDb, getSchema, getDrizzleORM } from '@/lib/db/safe-drizzle';
 
 // Schema for order creation
 const CustomerInfoSchema = z.object({
@@ -55,6 +53,21 @@ export async function POST(request: NextRequest) {
     if (buildResponse) {
       return NextResponse.json(buildResponse, { status: 201 });
     }
+    
+    // Get safe database references
+    const db = getDb();
+    const schema = getSchema();
+    const drizzleORM = getDrizzleORM();
+    
+    if (!db || !schema || !drizzleORM) {
+      return NextResponse.json(
+        { error: 'Database connection not available' },
+        { status: 500 }
+      );
+    }
+    
+    const { orders, orderItems, products } = schema;
+    const { eq, and } = drizzleORM;
 
     const body = await request.json();
     const orderData = CreateOrderSchema.parse(body);

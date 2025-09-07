@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db/drizzle';
-import { products, categories } from '@/lib/db/schema';
-import { eq, and, ne } from 'drizzle-orm';
+import { getDb, getSchema, getDrizzleORM } from '@/lib/db/safe-drizzle';
 import { createBuildSafeResponse } from '@/lib/build-utils';
 
 export async function GET(
@@ -15,6 +13,21 @@ export async function GET(
     if (buildResponse) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
+    
+    // Get safe database references
+    const db = getDb();
+    const schema = getSchema();
+    const drizzleORM = getDrizzleORM();
+    
+    if (!db || !schema || !drizzleORM) {
+      return NextResponse.json(
+        { error: 'Database connection not available' },
+        { status: 500 }
+      );
+    }
+    
+    const { products, categories } = schema;
+    const { eq, and, ne } = drizzleORM;
 
     const { slug } = await params;
 
@@ -118,6 +131,21 @@ export async function PUT(
     if (buildResponse) {
       return NextResponse.json(buildResponse);
     }
+    
+    // Get safe database references
+    const db = getDb();
+    const schema = getSchema();
+    const drizzleORM = getDrizzleORM();
+    
+    if (!db || !schema || !drizzleORM) {
+      return NextResponse.json(
+        { error: 'Database connection not available' },
+        { status: 500 }
+      );
+    }
+    
+    const { products } = schema;
+    const { eq } = drizzleORM;
 
     // This would typically require admin authentication
     const { slug } = await params;
