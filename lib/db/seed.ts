@@ -1,14 +1,42 @@
-import { getDb, getSchema } from './safe-drizzle';
+import 'dotenv/config';
 import { hashPassword } from '@/lib/auth/session';
 import slugify from 'slugify';
+import * as schema from './schema';
+
+/**
+ * Determine if we should use Neon based on environment
+ */
+function shouldUseNeon(): boolean {
+  return !!(process.env.DATABASE_URL && (
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL ||
+    process.env.DATABASE_URL.includes('neon.tech')
+  ));
+}
 
 async function seed() {
-  const db = getDb();
-  const schema = getSchema();
+  const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL!;
+  let client: any;
+  let db: any;
   
-  if (!db || !schema) {
-    console.error('⚠️ Database not available for seeding');
-    throw new Error('Database connection not available');
+  if (shouldUseNeon()) {
+    // Use Neon for production/serverless
+    const { neon } = await import('@neondatabase/serverless');
+    const { drizzle } = await import('drizzle-orm/neon-http');
+    
+    client = neon(dbUrl);
+    db = drizzle(client, { schema });
+    
+    console.log('✅ Neon serverless database connection established for seeding');
+  } else {
+    // Use postgres for local development
+    const { drizzle } = await import('drizzle-orm/postgres-js');
+    const postgres = (await import('postgres')).default;
+    
+    client = postgres(dbUrl);
+    db = drizzle(client, { schema });
+    
+    console.log('✅ Postgres database connection established for seeding');
   }
   
   const { users, categories, products } = schema;
@@ -267,14 +295,20 @@ async function seed() {
 
   console.log(`${insertedProducts.length} products created.`);
   console.log('Seed data created successfully.');
+  
+  // Close database connection (only for postgres, Neon connections auto-close)
+  if (!shouldUseNeon() && client.end) {
+    await client.end();
+    console.log('Database connection closed.');
+  }
 }
 
 seed()
-  .catch((error) => {
-    console.error('Seed process failed:', error);
-    process.exit(1);
-  })
-  .finally(() => {
-    console.log('Seed process finished. Exiting...');
+  .then(() => {
+    console.log('✅ Seed process completed successfully!');
     process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Seed process failed:', error);
+    process.exit(1);
   });

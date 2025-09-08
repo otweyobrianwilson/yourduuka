@@ -91,12 +91,16 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
             >
               <Heart className="h-3 w-3" fill={isLiked ? 'currentColor' : 'none'} />
             </button>
-            <Link
-              href={`/products/${product.slug}`}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.href = `/products/${product.slug}`;
+              }}
               className="p-2 bg-white/90 text-brand-muted hover:text-brand-accent hover:bg-white shadow-soft transition-all duration-300"
             >
               <Eye className="h-3 w-3" />
-            </Link>
+            </button>
           </div>
         </div>
 

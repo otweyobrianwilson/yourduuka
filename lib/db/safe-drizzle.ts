@@ -1,5 +1,5 @@
 /**
- * Safe database wrapper that handles build-time scenarios
+ * Safe database wrapper that handles build-time scenarios and supports both Neon and postgres drivers
  */
 
 import { isBuildTime } from '@/lib/build-utils';
@@ -10,6 +10,18 @@ let _schema: any = null;
 let _drizzleORM: any = null;
 
 /**
+ * Determine if we should use Neon based on environment
+ */
+function shouldUseNeon(): boolean {
+  // Use Neon if DATABASE_URL is set and we're in production or Vercel
+  return !!(process.env.DATABASE_URL && (
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL ||
+    process.env.DATABASE_URL.includes('neon.tech')
+  ));
+}
+
+/**
  * Get database connection - returns null during build time
  */
 export function getDb() {
@@ -17,18 +29,32 @@ export function getDb() {
     return null;
   }
 
-  if (!_db && process.env.POSTGRES_URL) {
+  const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  
+  if (!_db && dbUrl) {
     try {
-      // Lazy load modules only when needed
-      const { drizzle } = require('drizzle-orm/postgres-js');
-      const postgres = require('postgres');
       const schema = require('./schema');
-      
-      _client = postgres(process.env.POSTGRES_URL);
-      _db = drizzle(_client, { schema });
       _schema = schema;
       
-      console.log('✅ Database connection established');
+      if (shouldUseNeon()) {
+        // Use Neon for production/serverless
+        const { neon } = require('@neondatabase/serverless');
+        const { drizzle } = require('drizzle-orm/neon-http');
+        
+        _client = neon(dbUrl);
+        _db = drizzle(_client, { schema });
+        
+        console.log('✅ Neon serverless database connection established');
+      } else {
+        // Use postgres for local development
+        const { drizzle } = require('drizzle-orm/postgres-js');
+        const postgres = require('postgres');
+        
+        _client = postgres(dbUrl);
+        _db = drizzle(_client, { schema });
+        
+        console.log('✅ Postgres database connection established');
+      }
     } catch (error) {
       console.error('⚠️ Database connection failed:', error.message);
       throw error;
@@ -58,7 +84,8 @@ export function getSchema() {
     return null;
   }
   
-  if (!_schema && process.env.POSTGRES_URL) {
+  const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (!_schema && dbUrl) {
     _schema = require('./schema');
   }
   
