@@ -33,22 +33,22 @@ export function getDb() {
   
   if (!_db && dbUrl) {
     try {
-      const schema = require('./schema');
+      const schema = eval('require')('./schema');
       _schema = schema;
       
       if (shouldUseNeon()) {
-        // Use Neon for production/serverless
-        const { neon } = require('@neondatabase/serverless');
-        const { drizzle } = require('drizzle-orm/neon-http');
+        // Use Neon for production/serverless - use eval to prevent webpack static analysis
+        const { neon } = eval('require')('@neondatabase/serverless');
+        const { drizzle } = eval('require')('drizzle-orm/neon-http');
         
         _client = neon(dbUrl);
         _db = drizzle(_client, { schema });
         
         console.log('✅ Neon serverless database connection established');
       } else {
-        // Use postgres for local development
-        const { drizzle } = require('drizzle-orm/postgres-js');
-        const postgres = require('postgres');
+        // Use postgres for local development - use eval to prevent webpack static analysis
+        const { drizzle } = eval('require')('drizzle-orm/postgres-js');
+        const postgres = eval('require')('postgres');
         
         _client = postgres(dbUrl);
         _db = drizzle(_client, { schema });
@@ -86,7 +86,7 @@ export function getSchema() {
   
   const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   if (!_schema && dbUrl) {
-    _schema = require('./schema');
+    _schema = eval('require')('./schema');
   }
   
   return _schema;
@@ -101,7 +101,7 @@ export function getDrizzleORM() {
   }
   
   if (!_drizzleORM) {
-    _drizzleORM = require('drizzle-orm');
+    _drizzleORM = eval('require')('drizzle-orm');
   }
   
   return _drizzleORM;
