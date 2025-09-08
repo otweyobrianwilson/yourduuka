@@ -1,0 +1,91 @@
+# =============================================================================
+# YourDuka E-commerce - Vercel Environment Variables
+# =============================================================================
+# Copy and paste these values when prompted by Vercel CLI
+# Or use the automated script: vercel-deployment-setup.sh
+# =============================================================================
+
+# VERCEL CLI SETUP COMMANDS
+# =========================
+
+# 1. Install Vercel CLI
+npm i -g vercel
+
+# 2. Login to Vercel
+vercel login
+
+# 3. Link your project
+vercel link
+
+# ENVIRONMENT VARIABLES
+# ====================
+
+# 4. DATABASE_URL (Neon PostgreSQL Database)
+vercel env add DATABASE_URL production
+# When prompted, paste this value:
+postgresql://neondb_owner:npg_G2MHsbvunco0@ep-still-glitter-adfe8uwi-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+# 5. AUTH_SECRET (JWT Signing Secret)
+vercel env add AUTH_SECRET production
+# When prompted, paste this value:
+d9e355c16c9f9ff860dbe709e66c4758cb15cbe387ff9e3b990cf668bb3b9d81
+
+# 6. NODE_ENV (Environment Mode)
+vercel env add NODE_ENV production
+# When prompted, paste this value:
+production
+
+# DEPLOYMENT
+# ==========
+
+# 7. Deploy to production
+vercel --prod
+
+# POST-DEPLOYMENT SETUP
+# =====================
+
+# After deployment is successful, run these API calls to set up your database:
+# (Replace 'yourdomain.vercel.app' with your actual Vercel domain)
+
+# Run database migrations:
+curl -X POST -H "Authorization: Bearer d9e355c16c9f9ff860dbe709e66c4758cb15cbe387ff9e3b990cf668bb3b9d81" https://yourdomain.vercel.app/api/migrate
+
+# Seed database with initial data:
+curl -X POST -H "Authorization: Bearer d9e355c16c9f9ff860dbe709e66c4758cb15cbe387ff9e3b990cf668bb3b9d81" https://yourdomain.vercel.app/api/seed
+
+# =============================================================================
+# ADMIN LOGIN CREDENTIALS (After seeding)
+# =============================================================================
+# Email: admin@yourduka.com
+# Password: admin123
+
+# =============================================================================
+# ENVIRONMENT VARIABLES REFERENCE
+# =============================================================================
+
+# For manual setup via Vercel Dashboard:
+# Go to: https://vercel.com/dashboard → Your Project → Settings → Environment Variables
+
+DATABASE_URL=postgresql://neondb_owner:npg_G2MHsbvunco0@ep-still-glitter-adfe8uwi-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+AUTH_SECRET=d9e355c16c9f9ff860dbe709e66c4758cb15cbe387ff9e3b990cf668bb3b9d81
+NODE_ENV=production
+
+# =============================================================================
+# TROUBLESHOOTING
+# =============================================================================
+
+# If deployment fails:
+# 1. Check build logs in Vercel dashboard
+# 2. Verify all environment variables are set correctly
+# 3. Ensure main branch contains the latest code with webpack fixes
+# 4. Re-run: vercel --prod
+
+# If database connection fails:
+# 1. Verify DATABASE_URL is exactly as shown above
+# 2. Check Neon database is active and accessible
+# 3. Test connection locally first
+
+# If authentication fails:
+# 1. Verify AUTH_SECRET matches exactly
+# 2. Check JWT token generation in application logs
+# 3. Clear browser cookies and try again
