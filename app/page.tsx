@@ -56,7 +56,7 @@ export default function HomePage() {
               </h1>
               <p className="mt-6 text-xl text-gray-300 max-w-2xl">
                 Discover Uganda's finest collection of premium footwear. From everyday comfort to special occasions, 
-                find your perfect pair at YourDuka.
+                find your perfect pair at YourDuuka.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Button

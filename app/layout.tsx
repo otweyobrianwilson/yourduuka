@@ -7,15 +7,15 @@ import CartSidebar from '@/components/cart-sidebar';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
-  title: 'YourDuka - Premium Footwear Collection in Uganda',
+  title: 'YourDuuka - Premium Footwear Collection in Uganda',
   description: 'Discover the finest collection of premium footwear in Uganda. Shop men\'s, women\'s, and kids\' shoes from top brands. Free delivery on orders over UGX 200,000.',
   keywords: 'footwear, shoes, Uganda, premium, men, women, kids, sneakers, boots, sandals',
-  authors: [{ name: 'YourDuka Team' }],
+  authors: [{ name: 'YourDuuka Team' }],
   openGraph: {
-    title: 'YourDuka - Premium Footwear Collection',
+    title: 'YourDuuka - Premium Footwear Collection',
     description: 'Premium footwear collection in Uganda',
-    url: 'https://yourduka.com',
-    siteName: 'YourDuka',
+    url: 'https://yourduuka.com',
+    siteName: 'YourDuuka',
     type: 'website',
   },
 };

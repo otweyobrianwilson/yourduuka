@@ -61,7 +61,7 @@ export default function Footer() {
                 <ShoppingBag className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-2xl font-light text-brand-accent tracking-wide">YourDuka</h2>
+                <h2 className="text-2xl font-light text-brand-accent tracking-wide">YourDuuka</h2>
                 <p className="text-on-primary/70 text-sm font-light tracking-widest uppercase">Premium Footwear</p>
               </div>
             </Link>
@@ -156,7 +156,7 @@ export default function Footer() {
           {/* Copyright */}
           <div className="mt-8 pt-6 border-t border-brand-light/20 text-center">
             <p className="text-on-primary/50 text-sm font-light tracking-wide">
-              © {currentYear} YourDuka Premium Footwear. All rights reserved. | Crafted with care in Uganda
+              © {currentYear} YourDuuka Premium Footwear. All rights reserved. | Crafted with care in Uganda
             </p>
           </div>
         </div>
