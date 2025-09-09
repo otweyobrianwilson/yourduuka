@@ -50,7 +50,7 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
             <h3 className="text-2xl font-light mb-3 tracking-wide text-on-accent">Stay Updated</h3>
-            <p className="text-white mb-8 font-light tracking-wide text-readable">Subscribe to our newsletter and be the first to know about new arrivals, exclusive deals, and style tips from our experts.</p>
+            <p className="text-white mb-8 font-light tracking-wide text-readable text-center mx-auto max-w-2xl">Subscribe to our newsletter and be the first to know about new arrivals, exclusive deals, and style tips from our experts.</p>
             <div className="flex flex-col sm:flex-row justify-center items-center max-w-md mx-auto gap-4">
               <input
                 type="email"

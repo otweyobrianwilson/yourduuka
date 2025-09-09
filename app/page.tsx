@@ -250,26 +250,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Newsletter Section */}
-      <section className="py-16 bg-brand-primary text-on-primary">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4 text-brand-accent">Stay in Style</h2>
-          <p className="text-on-primary/80 mb-8 max-w-2xl mx-auto font-light tracking-wide">
-            Subscribe to our newsletter and be the first to know about new arrivals, 
-            exclusive deals, and style tips from our experts.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center items-center max-w-md mx-auto gap-4">
-            <input
-              type="email"
-              placeholder="Your email address"
-              className="w-full px-4 py-3 bg-white/10 border-b border-white/30 text-on-primary placeholder-white/60 focus:outline-none focus:border-brand-accent transition-colors font-light tracking-wide"
-            />
-            <button className="w-full sm:w-auto px-8 py-3 bg-brand-accent text-white font-medium uppercase tracking-widest hover:bg-brand-accent/90 transition-all duration-300 shadow-elegant hover:shadow-hover">
-              Subscribe
-            </button>
-          </div>
-        </div>
-      </section>
+
     </>
   );
 }
