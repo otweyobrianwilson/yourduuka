@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
@@ -29,6 +29,7 @@ interface ProductFilterProps {
   isOpen: boolean;
   onToggle: () => void;
   onClear: () => void;
+  availableSizes?: string[];
 }
 
 export default function ProductFilter({
@@ -37,12 +38,48 @@ export default function ProductFilter({
   isOpen,
   onToggle,
   onClear,
+  availableSizes = [],
 }: ProductFilterProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>([
     'category',
     'brand',
     'price',
   ]);
+  const [dynamicSizes, setDynamicSizes] = useState<string[]>([]);
+
+  // Fetch available sizes from API when component mounts
+  useEffect(() => {
+    const fetchSizes = async () => {
+      try {
+        const response = await fetch('/api/products?limit=1000'); // Get all products to extract sizes
+        if (response.ok) {
+          const data = await response.json();
+          const allSizes = new Set<string>();
+          
+          data.products?.forEach((product: any) => {
+            if (product.availableSizes && Array.isArray(product.availableSizes)) {
+              product.availableSizes.forEach((size: string) => allSizes.add(size));
+            }
+          });
+          
+          // Sort sizes numerically
+          const sortedSizes = Array.from(allSizes).sort((a, b) => {
+            const numA = parseFloat(a);
+            const numB = parseFloat(b);
+            return numA - numB;
+          });
+          
+          setDynamicSizes(sortedSizes);
+        }
+      } catch (error) {
+        console.error('Error fetching sizes:', error);
+        // Fallback to default sizes if API fails
+        setDynamicSizes(['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46']);
+      }
+    };
+
+    fetchSizes();
+  }, []);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
@@ -96,10 +133,8 @@ export default function ProductFilter({
     },
     {
       id: 'size',
-      title: 'Size',
-      options: [
-        '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46',
-      ],
+      title: 'Size (UK)',
+      options: dynamicSizes.length > 0 ? dynamicSizes : availableSizes,
       selectedValues: filters.sizes,
     },
     {

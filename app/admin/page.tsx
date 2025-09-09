@@ -12,7 +12,8 @@ import {
   Edit,
   Eye,
   Settings,
-  LogOut
+  LogOut,
+  Ruler
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -247,6 +248,16 @@ export default function AdminDashboard() {
                 <Plus className="h-5 w-5 text-brand-muted group-hover:text-brand-accent" />
                 <span className="font-light text-brand-primary group-hover:text-brand-accent">
                   Add New Product
+                </span>
+              </Link>
+              
+              <Link 
+                href="/admin/sizes"
+                className="flex items-center gap-3 p-3 border border-brand-light hover:border-brand-accent hover:bg-brand-accent/5 transition-all duration-300 group"
+              >
+                <Ruler className="h-5 w-5 text-brand-muted group-hover:text-brand-accent" />
+                <span className="font-light text-brand-primary group-hover:text-brand-accent">
+                  Manage Sizes
                 </span>
               </Link>
             </div>

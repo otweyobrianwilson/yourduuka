@@ -312,6 +312,7 @@ export default function ProductPage() {
         isOpen={showSizeGuide}
         onClose={() => setShowSizeGuide(false)}
         gender={product.sizeCategory as 'Men' | 'Women' | 'Unisex' || 'Unisex'}
+        availableSizes={product.availableSizes as string[] || []}
       />
     </div>
   );

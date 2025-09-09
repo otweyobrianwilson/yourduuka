@@ -10,9 +10,10 @@ interface SizeGuideModalProps {
   isOpen: boolean;
   onClose: () => void;
   gender?: 'Men' | 'Women' | 'Unisex';
+  availableSizes?: string[];
 }
 
-export default function SizeGuideModal({ isOpen, onClose, gender = 'Unisex' }: SizeGuideModalProps) {
+export default function SizeGuideModal({ isOpen, onClose, gender = 'Unisex', availableSizes = [] }: SizeGuideModalProps) {
   const [activeTab, setActiveTab] = useState<'measure' | 'chart' | 'fit'>('measure');
 
   const mensSizes = [
@@ -48,7 +49,11 @@ export default function SizeGuideModal({ isOpen, onClose, gender = 'Unisex' }: S
 
   if (!isOpen) return null;
 
-  const sizes = gender === 'Women' ? womensSizes : mensSizes;
+  // Filter sizes based on available sizes if provided
+  const allSizes = gender === 'Women' ? womensSizes : mensSizes;
+  const sizes = availableSizes.length > 0 
+    ? allSizes.filter(size => availableSizes.includes(size.uk))
+    : allSizes;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
@@ -116,6 +121,11 @@ export default function SizeGuideModal({ isOpen, onClose, gender = 'Unisex' }: S
                 <p className="text-sm sm:text-base text-brand-secondary chinese-accent">
                   Follow these simple steps for the most accurate measurements.
                 </p>
+                {availableSizes.length > 0 && (
+                  <p className="text-xs sm:text-sm text-brand-accent mt-2 chinese-accent">
+                    ✓ Size chart shows only available sizes for this product
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -189,6 +199,13 @@ export default function SizeGuideModal({ isOpen, onClose, gender = 'Unisex' }: S
                 <p className="text-sm sm:text-base text-brand-secondary chinese-accent">
                   Use this chart to convert your foot measurement to the right shoe size.
                 </p>
+                {availableSizes.length > 0 && (
+                  <div className="mt-3 mb-1">
+                    <p className="text-xs text-brand-accent bg-brand-accent/10 px-3 py-1 rounded-full inline-block chinese-accent">
+                      Showing {sizes.length} available size{sizes.length !== 1 ? 's' : ''} for this product
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="bg-white p-3 sm:p-6 border border-brand-light/50 overflow-x-auto rounded-lg">
@@ -211,14 +228,22 @@ export default function SizeGuideModal({ isOpen, onClose, gender = 'Unisex' }: S
                     </tr>
                   </thead>
                   <tbody>
-                    {sizes.map((size, index) => (
-                      <tr key={index} className="border-b border-brand-light/50 hover:bg-brand-light/30 transition-colors">
-                        <td className="py-1 sm:py-2 px-1 sm:px-2 text-xs sm:text-sm text-brand-secondary chinese-accent">{size.uk}</td>
-                        <td className="py-1 sm:py-2 px-1 sm:px-2 text-xs sm:text-sm text-brand-secondary chinese-accent">{size.us}</td>
-                        <td className="py-1 sm:py-2 px-1 sm:px-2 text-xs sm:text-sm text-brand-secondary chinese-accent">{size.eu}</td>
-                        <td className="py-1 sm:py-2 px-1 sm:px-2 text-xs sm:text-sm text-brand-accent font-light">{size.cm}</td>
+                    {sizes.length > 0 ? (
+                      sizes.map((size, index) => (
+                        <tr key={index} className={`border-b border-brand-light/50 hover:bg-brand-light/30 transition-colors ${availableSizes.includes(size.uk) ? 'border-l-2 border-brand-accent bg-brand-accent/5' : ''}`}>
+                          <td className="py-1 sm:py-2 px-1 sm:px-2 text-xs sm:text-sm text-brand-secondary chinese-accent font-medium">{size.uk}</td>
+                          <td className="py-1 sm:py-2 px-1 sm:px-2 text-xs sm:text-sm text-brand-secondary chinese-accent">{size.us}</td>
+                          <td className="py-1 sm:py-2 px-1 sm:px-2 text-xs sm:text-sm text-brand-secondary chinese-accent">{size.eu}</td>
+                          <td className="py-1 sm:py-2 px-1 sm:px-2 text-xs sm:text-sm text-brand-accent font-light">{size.cm}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-brand-secondary chinese-accent">
+                          No sizes available for this product
+                        </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>

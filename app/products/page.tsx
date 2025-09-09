@@ -5,6 +5,7 @@ import { Product, Category } from '@/lib/db/schema';
 import ProductGrid from '@/components/products/product-grid';
 import ProductFilter from '@/components/products/product-filter';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Grid, List, SlidersHorizontal } from 'lucide-react';
 
 interface ProductsPageData {
@@ -28,7 +29,7 @@ export default function ProductsPage() {
     inStock: false,
     onSale: false
   });
-  const [sort, setSort] = useState('name');
+  const [sort, setSort] = useState('createdAt-desc');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,7 +47,10 @@ export default function ProductsPage() {
         if (filters.priceRange[1] < 1000) params.append('maxPrice', filters.priceRange[1].toString());
         if (filters.inStock) params.append('inStock', 'true');
         if (filters.onSale) params.append('onSale', 'true');
-        if (sort) params.append('sort', sort);
+        // Handle sorting
+        const [sortField, sortOrder] = sort.split('-');
+        if (sortField) params.append('sortBy', sortField);
+        if (sortOrder) params.append('sortOrder', sortOrder);
         
         // Fetch products and categories
         const [productsResponse, categoriesResponse] = await Promise.all([
@@ -71,7 +75,7 @@ export default function ProductsPage() {
     };
 
     fetchData();
-  }, [filters]);
+  }, [filters, sort]);
 
   const handleFilterChange = (newFilters: any) => {
     setFilters(newFilters);
@@ -88,7 +92,7 @@ export default function ProductsPage() {
       inStock: false,
       onSale: false
     });
-    setSort('name');
+    setSort('createdAt-desc');
   };
 
   if (loading) {
@@ -184,25 +188,46 @@ export default function ProductsPage() {
               )}
             </div>
 
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-brand-muted chinese-accent text-readable-muted">View:</span>
-              <div className="flex items-center border border-brand-light rounded">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className={`rounded-none ${viewMode === 'grid' ? 'bg-brand-accent text-on-accent' : 'text-brand-muted hover:text-brand-primary'}`}
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className={`rounded-none ${viewMode === 'list' ? 'bg-brand-accent text-on-accent' : 'text-brand-muted hover:text-brand-primary'}`}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
+            <div className="flex items-center space-x-6">
+              {/* Sort dropdown */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-brand-muted chinese-accent text-readable-muted">Sort:</span>
+                <Select value={sort} onValueChange={setSort}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="createdAt-desc">Newest First</SelectItem>
+                    <SelectItem value="createdAt-asc">Oldest First</SelectItem>
+                    <SelectItem value="name-asc">Name: A to Z</SelectItem>
+                    <SelectItem value="name-desc">Name: Z to A</SelectItem>
+                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* View toggle */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-brand-muted chinese-accent text-readable-muted">View:</span>
+                <div className="flex items-center border border-brand-light rounded">
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                    className={`rounded-none ${viewMode === 'grid' ? 'bg-brand-accent text-on-accent' : 'text-brand-muted hover:text-brand-primary'}`}
+                  >
+                    <Grid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className={`rounded-none ${viewMode === 'list' ? 'bg-brand-accent text-on-accent' : 'text-brand-muted hover:text-brand-primary'}`}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -224,7 +249,7 @@ export default function ProductsPage() {
             {/* Products Grid */}
             <div className={showFilters ? "lg:col-span-3" : "lg:col-span-4"}>
               {data && data.products.length > 0 ? (
-                <ProductGrid products={data.products} />
+                <ProductGrid products={data.products} viewMode={viewMode} />
               ) : (
                 <div className="text-center py-20">
                   <div className="w-16 h-16 bg-brand-light rounded-full flex items-center justify-center mx-auto mb-6">

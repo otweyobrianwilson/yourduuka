@@ -114,6 +114,8 @@ const updateProductSchema = z.object({
   material: z.string().optional(),
   color: z.string().optional(),
   size: z.string().optional(),
+  availableSizes: z.array(z.string()).optional(),
+  sizeCategory: z.enum(['Men', 'Women', 'Unisex']).optional(),
   gender: z.enum(['Men', 'Women', 'Unisex']).optional(),
   categoryId: z.number().int().optional(),
   isFeatured: z.boolean().optional(),
@@ -148,6 +150,65 @@ export async function PUT(
     }
 
     // Update product
+    const [updatedProduct] = await db
+      .update(products)
+      .set({
+        ...validatedData,
+        updatedAt: new Date(),
+      })
+      .where(eq(products.slug, slug))
+      .returning();
+
+    return NextResponse.json({
+      success: true,
+      message: 'Product updated successfully',
+      product: updatedProduct,
+    });
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid product data', details: error.errors },
+        { status: 400 }
+      );
+    }
+
+    console.error('Error updating product:', error);
+    return NextResponse.json(
+      { error: 'Failed to update product' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH endpoint for partial updates (like sizes)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  try {
+    const { slug } = await params;
+    
+    // TODO: Add admin authentication check here
+    // For now, we'll allow updates but this should be protected
+    
+    const body = await request.json();
+    const validatedData = updateProductSchema.parse(body);
+
+    // Check if product exists
+    const [existingProduct] = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(eq(products.slug, slug));
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update product with only provided fields
     const [updatedProduct] = await db
       .update(products)
       .set({
