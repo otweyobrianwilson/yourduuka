@@ -213,6 +213,8 @@ export async function GET(request: NextRequest) {
         gender: products.gender,
         isFeatured: products.isFeatured,
         tags: products.tags,
+        availableSizes: products.availableSizes,
+        sizeCategory: products.sizeCategory,
         createdAt: products.createdAt,
         updatedAt: products.updatedAt,
         // Include category information

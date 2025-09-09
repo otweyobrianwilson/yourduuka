@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import ProductImageGallery from '@/components/products/product-image-gallery';
 import RelatedProducts from '@/components/products/related-products';
 import AddToCartButton from '@/components/products/add-to-cart-button';
+import SizeSelector, { generateSizeData } from '@/components/products/size-selector';
+import SizeGuideModal from '@/components/products/size-guide-modal';
 import { useWishlistStore } from '@/lib/stores/wishlist-store';
 import { Product } from '@/lib/db/schema';
 import { toast } from 'react-hot-toast';
@@ -26,6 +28,8 @@ export default function ProductPage() {
   
   const [data, setData] = useState<ProductPageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedSize, setSelectedSize] = useState<any>(null);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
   const { toggleItem, isInWishlist, isHydrated } = useWishlistStore();
   
   useEffect(() => {
@@ -226,11 +230,26 @@ export default function ProductPage() {
               </div>
             )}
 
+            {/* Size Selection */}
+            <div className="pt-6 border-t border-brand-light">
+              <SizeSelector
+                sizes={generateSizeData(
+                  product.sizeCategory as 'Men' | 'Women' | 'Unisex' || 'Unisex',
+                  product.availableSizes as string[] || []
+                )}
+                selectedSize={selectedSize}
+                onSizeSelect={setSelectedSize}
+                onSizeGuideOpen={() => setShowSizeGuide(true)}
+                gender={product.sizeCategory as 'Men' | 'Women' | 'Unisex' || 'Unisex'}
+              />
+            </div>
+
             {/* Action Buttons */}
             <div className="space-y-4 pt-6">
               <div className="flex gap-4">
                 <AddToCartButton 
                   product={product}
+                  selectedSize={selectedSize}
                   className="flex-1"
                 />
                 <Button 
@@ -287,6 +306,13 @@ export default function ProductPage() {
           <RelatedProducts products={relatedProducts} />
         </div>
       </div>
+
+      {/* Size Guide Modal */}
+      <SizeGuideModal
+        isOpen={showSizeGuide}
+        onClose={() => setShowSizeGuide(false)}
+        gender={product.sizeCategory as 'Men' | 'Women' | 'Unisex' || 'Unisex'}
+      />
     </div>
   );
 }

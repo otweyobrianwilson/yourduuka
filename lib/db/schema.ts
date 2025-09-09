@@ -57,7 +57,9 @@ export const products = pgTable('products', {
   brand: varchar('brand', { length: 100 }),
   material: varchar('material', { length: 100 }),
   color: varchar('color', { length: 50 }),
-  size: varchar('size', { length: 20 }),
+  size: varchar('size', { length: 20 }), // Deprecated - use availableSizes instead
+  availableSizes: json('available_sizes'), // Array of available UK sizes e.g. ['7', '7.5', '8']
+  sizeCategory: varchar('size_category', { length: 20 }), // 'Men', 'Women', 'Unisex'
   gender: varchar('gender', { length: 20 }),
   isActive: boolean('is_active').default(true),
   isFeatured: boolean('is_featured').default(false),
@@ -80,6 +82,7 @@ export const cartItems = pgTable('cart_items', {
   id: serial('id').primaryKey(),
   cartId: integer('cart_id').notNull().references(() => carts.id, { onDelete: 'cascade' }),
   productId: integer('product_id').notNull().references(() => products.id),
+  selectedSize: varchar('selected_size', { length: 10 }), // UK size e.g. '8', '8.5'
   quantity: integer('quantity').notNull().default(1),
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -117,6 +120,7 @@ export const orderItems = pgTable('order_items', {
   productId: integer('product_id').notNull().references(() => products.id),
   productName: varchar('product_name', { length: 200 }).notNull(),
   productSku: varchar('product_sku', { length: 100 }),
+  selectedSize: varchar('selected_size', { length: 10 }), // UK size e.g. '8', '8.5'
   quantity: integer('quantity').notNull(),
   unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
   totalPrice: decimal('total_price', { precision: 10, scale: 2 }).notNull(),

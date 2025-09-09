@@ -33,6 +33,8 @@ export async function GET(
         material: products.material,
         color: products.color,
         size: products.size,
+        availableSizes: products.availableSizes,
+        sizeCategory: products.sizeCategory,
         gender: products.gender,
         isActive: products.isActive,
         isFeatured: products.isFeatured,

@@ -5,6 +5,7 @@ import { Product } from '@/lib/db/schema';
 export interface CartItem {
   id: number;
   product: Product;
+  selectedSize?: any; // Size object {uk, us, eu, cm}
   quantity: number;
   price: number;
 }
@@ -19,9 +20,9 @@ interface CartStore {
   isHydrated: boolean;
   
   // Actions
-  addItem: (product: Product, quantity?: number) => Promise<void>;
-  removeItem: (productId: number) => Promise<void>;
-  updateQuantity: (productId: number, quantity: number) => Promise<void>;
+  addItem: (product: Product, selectedSize?: any, quantity?: number) => Promise<void>;
+  removeItem: (productId: number, selectedSize?: any) => Promise<void>;
+  updateQuantity: (productId: number, selectedSize: any, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   toggleCart: () => void;
   setCartOpen: (open: boolean) => void;
@@ -94,12 +95,19 @@ export const useCartStore = create<CartStore>()(
       isLoading: false,
       isHydrated: false,
 
-      addItem: async (product: Product, quantity = 1) => {
+      addItem: async (product: Product, selectedSize?: any, quantity = 1) => {
         const { sessionId, isHydrated } = get();
         
         // Optimistic update for better UX
         set((state) => {
-          const existingItem = state.items.find(item => item.product.id === product.id);
+          // For products with sizes, check both product ID and size
+          const existingItem = state.items.find(item => {
+            if (selectedSize) {
+              return item.product.id === product.id && 
+                     item.selectedSize?.uk === selectedSize.uk;
+            }
+            return item.product.id === product.id;
+          });
           
           if (existingItem) {
             const updatedItems = state.items.map(item =>
@@ -117,6 +125,7 @@ export const useCartStore = create<CartStore>()(
             const newItem: CartItem = {
               id: Date.now(),
               product,
+              selectedSize,
               quantity,
               price: parseFloat(product.price),
             };

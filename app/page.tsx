@@ -75,7 +75,7 @@ export default function HomePage() {
                   className="text-lg px-8 py-3 border-2 border-white text-black bg-white hover:bg-gray-100 hover:text-brand-primary font-medium shadow-elegant hover:shadow-hover transition-all duration-300"
                   asChild
                 >
-                  <Link href="/categories">
+                  <Link href="/products">
                     Browse Categories
                   </Link>
                 </Button>

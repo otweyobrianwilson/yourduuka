@@ -7,32 +7,18 @@ export default function Footer() {
   const footerLinks = {
     shop: [
       { href: '/products', label: 'All Products' },
-      { href: '/categories/men', label: 'Men\'s Footwear' },
-      { href: '/categories/women', label: 'Women\'s Footwear' },
-      { href: '/categories/kids', label: 'Kids\' Footwear' },
-      { href: '/brands', label: 'Brands' },
+      { href: '/categories/sneakers', label: 'Sneakers' },
+      { href: '/categories/boots', label: 'Boots' },
+      { href: '/categories/formal-shoes', label: 'Formal Shoes' },
     ],
     customer: [
-      { href: '/account', label: 'My Account' },
-      { href: '/orders', label: 'Order History' },
-      { href: '/shipping', label: 'Shipping Info' },
-      { href: '/returns', label: 'Returns & Exchanges' },
-      { href: '/size-guide', label: 'Size Guide' },
-      { href: '/faq', label: 'FAQ' },
+      { href: '/products', label: 'All Products' },
+      { href: '/wishlist', label: 'Wishlist' },
+      { href: '/admin', label: 'Admin Panel' },
     ],
     company: [
-      { href: '/about', label: 'About Us' },
-      { href: '/contact', label: 'Contact Us' },
-      { href: '/careers', label: 'Careers' },
-      { href: '/stores', label: 'Store Locator' },
-      { href: '/blog', label: 'Blog' },
-      { href: '/press', label: 'Press' },
-    ],
-    legal: [
-      { href: '/privacy', label: 'Privacy Policy' },
-      { href: '/terms', label: 'Terms of Service' },
-      { href: '/cookies', label: 'Cookie Policy' },
-      { href: '/accessibility', label: 'Accessibility' },
+      { href: 'tel:+256758306513', label: 'Call Us' },
+      { href: 'mailto:info@yourduka.com', label: 'Email Us' },
     ],
   };
 
@@ -67,7 +53,7 @@ export default function Footer() {
 
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Company Info */}
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center mb-6">
@@ -131,13 +117,13 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h3 className="text-lg font-light mb-6 text-brand-accent uppercase tracking-widest">Company</h3>
+            <h3 className="text-lg font-light mb-6 text-brand-accent uppercase tracking-widest">Contact</h3>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-brand-cream/70 hover:text-brand-accent transition-colors duration-300 font-light tracking-wide">
+                  <a href={link.href} className="text-brand-cream/70 hover:text-brand-accent transition-colors duration-300 font-light tracking-wide">
                     {link.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -146,7 +132,7 @@ export default function Footer() {
 
         {/* Social Media & Legal */}
         <div className="mt-16 pt-8 border-t border-brand-light/20">
-          <div className="flex flex-col lg:flex-row justify-between items-center">
+          <div className="flex flex-col lg:flex-row justify-center lg:justify-start items-center">
             {/* Social Media */}
             <div className="flex items-center space-x-8 mb-6 lg:mb-0">
               <span className="text-on-primary/60 font-light uppercase tracking-widest text-sm">Follow:</span>
@@ -164,18 +150,7 @@ export default function Footer() {
               ))}
             </div>
 
-            {/* Legal Links */}
-            <div className="flex flex-wrap justify-center lg:justify-end items-center space-x-8">
-              {footerLinks.legal.map((link, index) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-on-primary/60 hover:text-brand-accent transition-colors duration-300 text-sm font-light tracking-wide"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
+
           </div>
 
           {/* Copyright */}

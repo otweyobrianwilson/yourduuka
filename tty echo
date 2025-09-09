@@ -1,0 +1,14 @@
+ id |              name               |              slug               |                      available_sizes                       | size_category 
+----+---------------------------------+---------------------------------+------------------------------------------------------------+---------------
+  1 | Nike Air Max 270                | nike-air-max-270                | ["7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11"]   | Unisex
+  2 | Adidas Ultraboost 22 - Updated  | adidas-ultraboost-22-updated    | ["7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11"]   | Unisex
+  3 | Timberland 6-Inch Premium Boots | timberland-6-inch-premium-boots | ["7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11"]   | Unisex
+  4 | Cole Haan Grand Crosscourt      | cole-haan-grand-crosscourt      | ["8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12"] | Men
+  5 | Birkenstock Arizona Sandals     | birkenstock-arizona-sandals     | ["8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12"] | Men
+  6 | New Balance Fresh Foam X        | new-balance-fresh-foam-x        | ["4", "4.5", "5", "5.5", "6", "6.5", "7", "7.5", "8"]      | Women
+  7 | Converse Chuck Taylor All Star  | converse-chuck-taylor-all-star  | ["4", "4.5", "5", "5.5", "6", "6.5", "7", "7.5", "8"]      | Women
+  8 | Vans Old Skool                  | vans-old-skool                  |                                                            | 
+  9 | Updated Test Shoe               | test-shoe                       |                                                            | 
+ 10 | Test Product CRUD               | test-product-crud               |                                                            | 
+(10 rows)
+
