@@ -153,7 +153,7 @@ export default function Header() {
       <div className="bg-brand-cream text-brand-primary text-sm h-10 py-2 opacity-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center items-center">
-            <p className="japanese-title text-center text-readable-light text-xs sm:text-sm">Free delivery on all orders | Call: +256 758 306 513</p>
+            <p className="japanese-title text-center text-readable-light text-[10px] xs:text-xs sm:text-sm">Free delivery on all orders | Call: +256 758 306 513</p>
           </div>
         </div>
       </div>
