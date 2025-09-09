@@ -57,16 +57,27 @@ export default function AdminCategoriesPage() {
   };
 
   const handleDeleteCategory = async (categoryId: number, categoryName: string) => {
-    if (!confirm(`Are you sure you want to delete "${categoryName}"? This will affect all products in this category.`)) {
+    if (!confirm(`Are you sure you want to delete "${categoryName}"? This will permanently delete the category. Make sure no products are using this category.`)) {
       return;
     }
 
     try {
-      // TODO: Implement delete API endpoint
-      alert('Delete category functionality will be implemented in the next update');
+      const response = await fetch(`/api/categories?id=${categoryId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`Category "${categoryName}" has been deleted successfully`);
+        // Refresh the categories list
+        fetchCategories();
+      } else {
+        alert(`Error: ${result.error}`);
+      }
     } catch (error) {
       console.error('Error deleting category:', error);
-      alert('Error deleting category');
+      alert('Error deleting category. Please try again.');
     }
   };
 

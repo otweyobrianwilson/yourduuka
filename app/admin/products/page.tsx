@@ -74,16 +74,37 @@ export default function AdminProductsPage() {
   };
 
   const handleDeleteProduct = async (productId: number, productName: string) => {
-    if (!confirm(`Are you sure you want to delete "${productName}"?`)) {
+    if (!confirm(`Are you sure you want to delete "${productName}"? This will deactivate the product.`)) {
       return;
     }
 
     try {
-      // TODO: Implement delete API endpoint
-      alert('Delete functionality will be implemented in the next update');
+      // Find the product slug to use in delete API
+      const product = products.find(p => p.id === productId);
+      if (!product) {
+        alert('Product not found');
+        return;
+      }
+
+      const response = await fetch(`/api/products/${product.slug}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`Product "${productName}" has been deactivated successfully`);
+        // Refresh the products list
+        const updatedResponse = await fetch(`/api/products?page=${currentPage}&limit=12&search=${search}`);
+        const updatedData = await updatedResponse.json();
+        setProducts(updatedData.products || []);
+        setTotalPages(updatedData.pagination?.totalPages || 1);
+      } else {
+        alert(`Error: ${result.error}`);
+      }
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Error deleting product');
+      alert('Error deleting product. Please try again.');
     }
   };
 

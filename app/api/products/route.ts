@@ -342,3 +342,149 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    // TODO: Add admin authentication check here
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get('id');
+    
+    if (!productId) {
+      return NextResponse.json(
+        { error: 'Product ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    const body = await request.json();
+    
+    // Validate input data
+    const validatedData = productSchema.parse(body);
+    
+    // Check if product exists
+    const existingProduct = await db
+      .select({ id: products.id, slug: products.slug })
+      .from(products)
+      .where(eq(products.id, parseInt(productId)))
+      .limit(1);
+      
+    if (existingProduct.length === 0) {
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Check if slug is unique (excluding current product)
+    const slugExists = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(eq(products.slug, validatedData.slug))
+      .limit(1);
+      
+    if (slugExists.length > 0 && slugExists[0].id !== parseInt(productId)) {
+      return NextResponse.json(
+        { error: 'Product with this slug already exists' },
+        { status: 400 }
+      );
+    }
+    
+    // Check if category exists
+    const categoryExists = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(eq(categories.id, validatedData.categoryId))
+      .limit(1);
+      
+    if (categoryExists.length === 0) {
+      return NextResponse.json(
+        { error: 'Category not found' },
+        { status: 400 }
+      );
+    }
+    
+    // Update product
+    const [updatedProduct] = await db
+      .update(products)
+      .set({
+        ...validatedData,
+        updatedAt: new Date(),
+      })
+      .where(eq(products.id, parseInt(productId)))
+      .returning();
+
+    return NextResponse.json({
+      success: true,
+      product: updatedProduct,
+      message: 'Product updated successfully',
+    });
+
+  } catch (error) {
+    console.error('Error updating product:', error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Failed to update product', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // TODO: Add admin authentication check here
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get('id');
+    
+    if (!productId) {
+      return NextResponse.json(
+        { error: 'Product ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Check if product exists
+    const existingProduct = await db
+      .select({ id: products.id, name: products.name })
+      .from(products)
+      .where(eq(products.id, parseInt(productId)))
+      .limit(1);
+      
+    if (existingProduct.length === 0) {
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Soft delete by setting isActive to false
+    // This preserves data integrity and allows for recovery
+    const [deletedProduct] = await db
+      .update(products)
+      .set({
+        isActive: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(products.id, parseInt(productId)))
+      .returning({ id: products.id, name: products.name, isActive: products.isActive });
+
+    return NextResponse.json({
+      success: true,
+      message: `Product "${deletedProduct.name}" has been deactivated`,
+      product: deletedProduct,
+    });
+
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete product', details: error.message },
+      { status: 500 }
+    );
+  }
+}
