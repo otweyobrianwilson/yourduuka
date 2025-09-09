@@ -1,37 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, getSchema, getDrizzleORM } from '@/lib/db/safe-drizzle';
-import { createBuildSafeResponse } from '@/lib/build-utils';
+import { db, products, categories } from '@/lib/db/connection';
+import { eq, and, gte, lte, ilike, or, inArray, desc, asc, isNotNull, count } from 'drizzle-orm';
+import { z } from 'zod';
+
+// Validation schema for product creation/update
+const productSchema = z.object({
+  name: z.string().min(1, 'Product name is required'),
+  slug: z.string().min(1, 'Product slug is required'),
+  description: z.string().optional(),
+  shortDescription: z.string().optional(),
+  price: z.string().regex(/^\d+(\.\d{2})?$/, 'Invalid price format'),
+  comparePrice: z.string().regex(/^\d+(\.\d{2})?$/).optional().nullable(),
+  sku: z.string().optional(),
+  barcode: z.string().optional().nullable(),
+  quantity: z.number().int().min(0, 'Quantity must be non-negative'),
+  minQuantity: z.number().int().min(0).optional(),
+  weight: z.number().positive().optional().nullable(),
+  dimensions: z.string().optional().nullable(),
+  images: z.array(z.string().url()).optional(),
+  categoryId: z.number().int().positive('Category is required'),
+  brand: z.string().optional(),
+  material: z.string().optional(),
+  color: z.string().optional(),
+  size: z.string().optional(),
+  gender: z.enum(['Men', 'Women', 'Kids', 'Unisex']).optional(),
+  isActive: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+  seoTitle: z.string().optional(),
+  seoDescription: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
-    // Check if we're in build time and return safe response
-    const buildResponse = createBuildSafeResponse({
-      products: [],
-      total: 0,
-      page: 1,
-      totalPages: 0,
-    });
-    
-    if (buildResponse) {
-      return NextResponse.json(buildResponse);
-    }
-    
-    // Get safe database references
-    const db = getDb();
-    const schema = getSchema();
-    const drizzleORM = getDrizzleORM();
-    
-    if (!db || !schema || !drizzleORM) {
-      console.error('⚠️ Database not available in runtime');
-      return NextResponse.json(
-        { error: 'Database connection not available' },
-        { status: 500 }
-      );
-    }
-    
-    const { products, categories } = schema;
-    const { eq, and, gte, lte, ilike, or, inArray, desc, asc, isNotNull } = drizzleORM;
-
     const { searchParams } = new URL(request.url);
     
     // Parse query parameters
@@ -75,16 +76,34 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Category filter
+    // Category filter by slug
     if (category) {
-      conditions.push(eq(products.categoryId, parseInt(category)));
+      // Get category ID from slug
+      const categoryRecord = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(eq(categories.slug, category))
+        .limit(1);
+      
+      if (categoryRecord.length > 0) {
+        conditions.push(eq(products.categoryId, categoryRecord[0].id));
+      } else {
+        // If category slug doesn't exist, return empty result
+        conditions.push(eq(products.id, -1)); // This will return no results
+      }
     }
 
     // Categories filter (array)
     if (categoriesFilter.length > 0) {
-      // Note: This assumes categories are stored by name in a field
-      // You may need to adjust based on your actual schema
-      conditions.push(inArray(products.brand, categoriesFilter)); // Adjust this field
+      // Convert category names to IDs
+      const categoryIds = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(inArray(categories.slug, categoriesFilter));
+      
+      if (categoryIds.length > 0) {
+        conditions.push(inArray(products.categoryId, categoryIds.map(c => c.id)));
+      }
     }
 
     // Brand filter
@@ -173,7 +192,7 @@ export async function GET(request: NextRequest) {
     // Calculate offset
     const offset = (page - 1) * limit;
 
-    // Build the query
+    // Build the query with join to categories
     let query = db
       .select({
         id: products.id,
@@ -186,65 +205,70 @@ export async function GET(request: NextRequest) {
         sku: products.sku,
         quantity: products.quantity,
         images: products.images,
+        categoryId: products.categoryId,
         brand: products.brand,
         material: products.material,
         color: products.color,
         size: products.size,
         gender: products.gender,
-        isActive: products.isActive,
         isFeatured: products.isFeatured,
         tags: products.tags,
         createdAt: products.createdAt,
         updatedAt: products.updatedAt,
-        categoryId: products.categoryId,
+        // Include category information
+        categoryName: categories.name,
+        categorySlug: categories.slug,
       })
-      .from(products);
+      .from(products)
+      .leftJoin(categories, eq(products.categoryId, categories.id));
 
-    // Apply conditions and execute query
-    let productsResult;
+    // Apply conditions
     if (conditions.length > 0) {
-      productsResult = await query
-        .where(and(...conditions))
-        .orderBy(orderBy)
-        .limit(limit)
-        .offset(offset);
-    } else {
-      productsResult = await query
-        .orderBy(orderBy)
-        .limit(limit)
-        .offset(offset);
+      query = query.where(and(...conditions));
     }
+
+    // Apply ordering
+    query = query.orderBy(orderBy);
+
+    // Apply pagination
+    query = query.limit(limit).offset(offset);
+
+    // Execute query
+    const result = await query;
 
     // Get total count for pagination
-    let countResult;
-    if (conditions.length > 0) {
-      countResult = await db
-        .select({ count: products.id })
-        .from(products)
-        .where(and(...conditions));
-    } else {
-      countResult = await db
-        .select({ count: products.id })
-        .from(products);
-    }
-    const total = countResult.length;
+    let countQuery = db
+      .select({ count: count() })
+      .from(products)
+      .leftJoin(categories, eq(products.categoryId, categories.id));
 
-    return NextResponse.json({
-      products: productsResult,
+    if (conditions.length > 0) {
+      countQuery = countQuery.where(and(...conditions));
+    }
+
+    const [{ count: totalCount }] = await countQuery;
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Format response
+    const response = {
+      products: result,
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
-      },
-    });
+        total: totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      }
+    };
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch products' },
+      { error: 'Failed to fetch products', details: error.message },
       { status: 500 }
     );
   }
@@ -252,67 +276,68 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // This would typically require admin authentication
-    // For now, we'll create a basic implementation
-    
+    // TODO: Add admin authentication check here
     const body = await request.json();
     
-    // Check if we're in build time and return safe response
-    const buildResponse = createBuildSafeResponse({ id: 0 });
+    // Validate input data
+    const validatedData = productSchema.parse(body);
     
-    if (buildResponse) {
-      return NextResponse.json(buildResponse);
-    }
-    
-    // Get safe database references
-    const db = getDb();
-    const schema = getSchema();
-    
-    if (!db || !schema) {
+    // Check if product with same slug already exists
+    const existingProduct = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(eq(products.slug, validatedData.slug))
+      .limit(1);
+      
+    if (existingProduct.length > 0) {
       return NextResponse.json(
-        { error: 'Database connection not available' },
-        { status: 500 }
+        { error: 'Product with this slug already exists' },
+        { status: 400 }
       );
     }
     
-    const { products } = schema;
+    // Check if category exists
+    const categoryExists = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(eq(categories.id, validatedData.categoryId))
+      .limit(1);
+      
+    if (categoryExists.length === 0) {
+      return NextResponse.json(
+        { error: 'Category not found' },
+        { status: 400 }
+      );
+    }
     
     // Create new product
     const [newProduct] = await db
       .insert(products)
       .values({
-        name: body.name,
-        slug: body.slug,
-        description: body.description,
-        shortDescription: body.shortDescription,
-        price: body.price,
-        comparePrice: body.comparePrice,
-        costPrice: body.costPrice,
-        sku: body.sku,
-        quantity: body.quantity || 0,
-        weight: body.weight,
-        dimensions: body.dimensions,
-        images: body.images || [],
-        categoryId: body.categoryId,
-        brand: body.brand,
-        material: body.material,
-        color: body.color,
-        size: body.size,
-        gender: body.gender,
-        isActive: body.isActive !== false,
-        isFeatured: body.isFeatured || false,
-        seoTitle: body.seoTitle,
-        seoDescription: body.seoDescription,
-        tags: body.tags || [],
+        ...validatedData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning();
 
-    return NextResponse.json(newProduct, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      product: newProduct,
+      message: 'Product created successfully',
+    }, { status: 201 });
 
   } catch (error) {
     console.error('Error creating product:', error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to create product' },
+      { error: 'Failed to create product', details: error.message },
       { status: 500 }
     );
   }

@@ -72,7 +72,7 @@ export default function HomePage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="text-lg px-8 py-3 border-2 border-white text-white hover:bg-white hover:text-brand-primary font-medium shadow-elegant hover:shadow-hover transition-all duration-300"
+                  className="text-lg px-8 py-3 border-2 border-white text-black bg-white hover:bg-gray-100 hover:text-brand-primary font-medium shadow-elegant hover:shadow-hover transition-all duration-300"
                   asChild
                 >
                   <Link href="/categories">
@@ -114,7 +114,7 @@ export default function HomePage() {
                     </div>
                     <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 transform -rotate-1 hover:rotate-0 transition-transform">
                       <Image
-                        src="https://images.unsplash.com/photo-1544966503-7cc5ac882d5c?w=400"
+                        src="https://m.media-amazon.com/images/I/714Ur7P80oS._AC_SY695_.jpg"
                         alt="Boots"
                         width={200}
                         height={200}
@@ -126,7 +126,7 @@ export default function HomePage() {
                   <div className="space-y-4 mt-8">
                     <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 transform -rotate-2 hover:rotate-0 transition-transform">
                       <Image
-                        src="https://images.unsplash.com/photo-1614252369475-531eba835eb1?w=400"
+                        src="https://rukminim2.flixcart.com/image/704/844/xif0q/shoe/l/k/h/7-a9905-7-averatto-brown-original-imah78rsddkw34hg.jpeg?q=90&crop=false"
                         alt="Formal Shoes"
                         width={200}
                         height={200}

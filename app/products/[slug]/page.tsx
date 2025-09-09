@@ -1,4 +1,7 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Heart, Share2, Star, Truck, Shield, RotateCcw, ShoppingCart } from 'lucide-react';
@@ -7,41 +10,91 @@ import { Badge } from '@/components/ui/badge';
 import ProductImageGallery from '@/components/products/product-image-gallery';
 import RelatedProducts from '@/components/products/related-products';
 import AddToCartButton from '@/components/products/add-to-cart-button';
+import { useWishlistStore } from '@/lib/stores/wishlist-store';
+import { Product } from '@/lib/db/schema';
+import { toast } from 'react-hot-toast';
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic';
-
-interface ProductPageProps {
-  params: Promise<{
-    slug: string;
-  }>;
+interface ProductPageData {
+  product: Product;
+  relatedProducts: Product[];
 }
 
-// This would normally fetch from your API
-async function getProduct(slug: string) {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/products/${slug}`, {
-      cache: 'no-store',
-    });
-    
-    if (!res.ok) {
-      return null;
+export default function ProductPage() {
+  const params = useParams();
+  const router = useRouter();
+  const slug = params.slug as string;
+  
+  const [data, setData] = useState<ProductPageData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toggleItem, isInWishlist, isHydrated } = useWishlistStore();
+  
+  useEffect(() => {
+    const fetchProductData = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/products/${slug}`);
+        
+        if (!res.ok) {
+          router.push('/products');
+          return;
+        }
+        
+        const fetchedData = await res.json();
+        setData(fetchedData);
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        router.push('/products');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductData();
+  }, [slug, router]);
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-brand-cream">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse">
+            <div className="h-6 bg-brand-light rounded w-1/3 mb-8"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="aspect-square bg-brand-light rounded"></div>
+              <div className="space-y-6">
+                <div className="h-8 bg-brand-light rounded w-3/4"></div>
+                <div className="h-4 bg-brand-light rounded w-1/2"></div>
+                <div className="h-6 bg-brand-light rounded w-1/4"></div>
+                <div className="h-12 bg-brand-light rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!data || !data.product) {
+    return (
+      <div className="min-h-screen bg-brand-cream flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-light text-brand-primary mb-4">Product not found</h1>
+          <Link href="/products" className="text-brand-accent hover:underline">
+            Back to all products
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const { product, relatedProducts } = data;
+  const isLiked = isHydrated ? isInWishlist(product.id) : false;
+  
+  const handleToggleWishlist = () => {
+    if (isHydrated) {
+      toggleItem(product);
+      toast.success(isLiked ? 'Removed from wishlist' : 'Added to wishlist!');
     }
-    
-    return res.json();
-  } catch (error) {
-    console.error('Error fetching product:', error);
-    return null;
-  }
-}
-
-export default async function ProductPage({ params }: ProductPageProps) {
-  const { slug } = await params;
-  const product = await getProduct(slug);
-
-  if (!product) {
-    notFound();
-  }
+  };
 
   const discountPercentage = product.comparePrice && parseFloat(product.comparePrice) > parseFloat(product.price)
     ? Math.round(((parseFloat(product.comparePrice) - parseFloat(product.price)) / parseFloat(product.comparePrice)) * 100)
@@ -181,11 +234,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   className="flex-1"
                 />
                 <Button 
+                  onClick={handleToggleWishlist}
                   variant="outline" 
                   size="icon"
-                  className="border-brand-accent/30 text-brand-primary hover:border-brand-accent hover:text-brand-accent transition-colors duration-300"
+                  className={`transition-colors duration-300 ${
+                    isLiked 
+                      ? 'border-brand-accent text-brand-accent bg-brand-accent/10' 
+                      : 'border-brand-accent/30 text-brand-primary hover:border-brand-accent hover:text-brand-accent'
+                  }`}
                 >
-                  <Heart className="h-4 w-4" />
+                  <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
                 </Button>
                 <Button 
                   variant="outline" 
@@ -226,7 +284,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
         {/* Related Products */}
         <div className="mt-16">
-          <RelatedProducts currentProductId={product.id} category={product.categoryId} />
+          <RelatedProducts products={relatedProducts} />
         </div>
       </div>
     </div>

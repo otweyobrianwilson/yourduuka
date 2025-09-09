@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { ShoppingBag, Search, Menu, X } from 'lucide-react';
+import { ShoppingBag, Search, Menu, X, Heart } from 'lucide-react';
 import { useCartStore } from '@/lib/stores/cart-store';
+import { useWishlistStore } from '@/lib/stores/wishlist-store';
 
 
 
@@ -52,6 +53,31 @@ function CartButton({ isScrolled }: { isScrolled: boolean }) {
   );
 }
 
+function WishlistButton({ isScrolled }: { isScrolled: boolean }) {
+  const { getItemCount, isHydrated } = useWishlistStore();
+  const itemCount = isHydrated ? getItemCount() : 0;
+  
+  return (
+    <Link
+      href="/wishlist"
+      className={`relative text-brand-primary hover:text-brand-accent transition-all duration-300 ${
+        isScrolled ? 'p-2' : 'p-3'
+      }`}
+    >
+      <Heart className={`transition-all duration-300 ${
+        isScrolled ? 'h-5 w-5' : 'h-6 w-6'
+      }`} />
+      {itemCount > 0 && (
+        <span className={`absolute -top-1 -right-1 bg-brand-accent text-on-accent flex items-center justify-center font-light transition-all duration-300 ${
+          isScrolled ? 'text-xs h-4 w-4' : 'text-xs h-5 w-5'
+        }`}>
+          {itemCount > 99 ? '99+' : itemCount}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 function Navigation({ isScrolled }: { isScrolled: boolean }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -61,7 +87,6 @@ function Navigation({ isScrolled }: { isScrolled: boolean }) {
     { href: '/categories/sneakers', label: 'Sneakers' },
     { href: '/categories/boots', label: 'Boots' },
     { href: '/categories/formal-shoes', label: 'Formal' },
-    { href: '/admin', label: 'Admin' },
   ];
   
   return (
@@ -98,22 +123,22 @@ function Navigation({ isScrolled }: { isScrolled: boolean }) {
       </button>
       
       {/* Mobile Navigation */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-brand-soft border-brand-light border-t shadow-soft z-50">
-          <nav className="px-6 py-4 space-y-3">
-            {navigationLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="block py-2 text-brand-primary hover:text-brand-accent font-light transition-colors duration-300 chinese-accent text-readable"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      )}
+      <div className={`lg:hidden absolute top-full left-0 right-0 bg-brand-soft border-brand-light shadow-soft z-50 transition-all duration-300 ease-in-out overflow-hidden ${
+        isMobileMenuOpen ? 'opacity-100 max-h-96 border-t' : 'opacity-0 max-h-0 border-t-0'
+      }`}>
+        <nav className="px-6 py-4 space-y-3">
+          {navigationLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="block py-2 text-brand-primary hover:text-brand-accent font-light transition-colors duration-300 chinese-accent text-readable"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
     </>
   );
 }
@@ -132,12 +157,12 @@ export default function Header() {
   }, []);
   
   return (
-    <header className={`bg-brand-soft border-brand-light border-b sticky top-0 z-40 transition-all duration-300 ${
-      isScrolled ? 'shadow-soft' : 'shadow-elegant'
+    <header className={`bg-brand-soft border-brand-light border-b sticky top-0 z-40 transition-all duration-300 ease-in-out ${
+      isScrolled ? 'shadow-soft backdrop-blur-sm' : 'shadow-elegant'
     }`}>
       {/* Top Bar - Hide on scroll */}
-      <div className={`bg-brand-cream text-brand-primary text-sm transition-all duration-300 overflow-hidden ${
-        isScrolled ? 'h-0 py-0' : 'h-auto py-2'
+      <div className={`bg-brand-cream text-brand-primary text-sm transition-all duration-500 ease-in-out overflow-hidden ${
+        isScrolled ? 'max-h-0 py-0 opacity-0' : 'max-h-20 py-2 opacity-100'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center items-center">
@@ -178,6 +203,7 @@ export default function Header() {
           {/* Right Actions */}
           <div className="flex items-center space-x-2">
             <Navigation isScrolled={isScrolled} />
+            <WishlistButton isScrolled={isScrolled} />
             <CartButton isScrolled={isScrolled} />
           </div>
         </div>

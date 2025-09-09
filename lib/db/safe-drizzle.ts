@@ -33,13 +33,32 @@ export function getDb() {
   
   if (!_db && dbUrl) {
     try {
-      const schema = eval('require')('./schema');
+      const schemaModule = require('./schema');
+      let schema;
+      // Always try to extract named exports first (for Turbopack modules)
+      schema = {};
+      const propertyNames = ['products', 'categories', 'users', 'carts', 'cartItems', 
+                            'orders', 'orderItems', 'activityLogs',
+                            'usersRelations', 'categoriesRelations', 'productsRelations',
+                            'cartsRelations', 'cartItemsRelations', 'ordersRelations', 
+                            'orderItemsRelations', 'activityLogsRelations'];
+      
+      for (const propName of propertyNames) {
+        if (propName in schemaModule) {
+          schema[propName] = schemaModule[propName];
+        }
+      }
+      
+      // If no properties were extracted, fall back to default/module itself
+      if (Object.keys(schema).length === 0) {
+        schema = schemaModule.default || schemaModule;
+      }
       _schema = schema;
       
       if (shouldUseNeon()) {
         // Use Neon for production/serverless - use eval to prevent webpack static analysis
-        const { neon } = eval('require')('@neondatabase/serverless');
-        const { drizzle } = eval('require')('drizzle-orm/neon-http');
+        const { neon } = require('@neondatabase/serverless');
+        const { drizzle } = require('drizzle-orm/neon-http');
         
         _client = neon(dbUrl);
         _db = drizzle(_client, { schema });
@@ -47,8 +66,8 @@ export function getDb() {
         console.log('✅ Neon serverless database connection established');
       } else {
         // Use postgres for local development - use eval to prevent webpack static analysis
-        const { drizzle } = eval('require')('drizzle-orm/postgres-js');
-        const postgres = eval('require')('postgres');
+        const { drizzle } = require('drizzle-orm/postgres-js');
+        const postgres = require('postgres');
         
         _client = postgres(dbUrl);
         _db = drizzle(_client, { schema });
@@ -86,7 +105,27 @@ export function getSchema() {
   
   const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   if (!_schema && dbUrl) {
-    _schema = eval('require')('./schema');
+    const schemaModule = require('./schema');
+    let schema;
+    // Always try to extract named exports first (for Turbopack modules)
+    schema = {};
+    const propertyNames = ['products', 'categories', 'users', 'carts', 'cartItems', 
+                          'orders', 'orderItems', 'activityLogs',
+                          'usersRelations', 'categoriesRelations', 'productsRelations',
+                          'cartsRelations', 'cartItemsRelations', 'ordersRelations', 
+                          'orderItemsRelations', 'activityLogsRelations'];
+    
+    for (const propName of propertyNames) {
+      if (propName in schemaModule) {
+        schema[propName] = schemaModule[propName];
+      }
+    }
+    
+    // If no properties were extracted, fall back to default/module itself
+    if (Object.keys(schema).length === 0) {
+      schema = schemaModule.default || schemaModule;
+    }
+    _schema = schema;
   }
   
   return _schema;
@@ -101,7 +140,7 @@ export function getDrizzleORM() {
   }
   
   if (!_drizzleORM) {
-    _drizzleORM = eval('require')('drizzle-orm');
+    _drizzleORM = require('drizzle-orm');
   }
   
   return _drizzleORM;

@@ -1,183 +1,168 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createBuildSafeResponse } from '@/lib/build-utils';
+import { db, schema } from '@/lib/db/connection';
+import { eq, desc, and, count, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { getDb, getSchema, getDrizzleORM } from '@/lib/db/safe-drizzle';
 
-// Schema for order creation
-const CustomerInfoSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().min(10, 'Phone number is required'),
-  address: z.string().min(5, 'Address is required'),
-  city: z.string().min(1, 'City is required'),
-  parish: z.string().optional(),
-  district: z.string().min(1, 'District is required'),
-  landmark: z.string().optional(),
-  deliveryNotes: z.string().optional(),
+const { orders, orderItems, products, users } = schema;
+
+// Order creation schema
+const createOrderSchema = z.object({
+  customerInfo: z.object({
+    name: z.string().min(1, 'Name is required'),
+    email: z.string().email('Valid email is required'),
+    phone: z.string().min(1, 'Phone is required'),
+    address: z.string().min(1, 'Address is required'),
+    city: z.string().min(1, 'City is required'),
+    postalCode: z.string().optional(),
+  }),
+  items: z.array(z.object({
+    productId: z.number().int().positive(),
+    quantity: z.number().int().positive(),
+    price: z.string().regex(/^\d+(\.\d{2})?$/, 'Invalid price format'),
+  })).min(1, 'At least one item is required'),
+  paymentMethod: z.enum(['cash_on_delivery', 'mobile_money', 'bank_transfer']).default('cash_on_delivery'),
+  notes: z.string().optional(),
 });
 
-const OrderItemSchema = z.object({
-  productId: z.number(),
-  quantity: z.number().min(1),
-  price: z.number().min(0),
-  productName: z.string(),
-});
-
-const CreateOrderSchema = z.object({
-  customerInfo: CustomerInfoSchema,
-  items: z.array(OrderItemSchema).min(1, 'At least one item is required'),
-  subtotal: z.number().min(0),
-  deliveryFee: z.number().min(0),
-  total: z.number().min(0),
-  paymentMethod: z.literal('cash_on_delivery'),
-});
-
-// Generate order number
-function generateOrderNumber(): string {
-  const prefix = 'YD';
-  const timestamp = Date.now().toString().slice(-6);
-  const random = Math.random().toString(36).substr(2, 4).toUpperCase();
-  return `${prefix}${timestamp}${random}`;
-}
-
-// POST /api/orders - Create new order
 export async function POST(request: NextRequest) {
   try {
-    // Check if we're in build time and return safe response
-    const buildResponse = createBuildSafeResponse({
-      success: true,
-      orderId: 'build-time-order',
-    });
-    
-    if (buildResponse) {
-      return NextResponse.json(buildResponse, { status: 201 });
+    const body = await request.json();
+    const validatedData = createOrderSchema.parse(body);
+
+    // Calculate total amount
+    let totalAmount = 0;
+    for (const item of validatedData.items) {
+      totalAmount += parseFloat(item.price) * item.quantity;
     }
-    
-    // Get safe database references
-    const db = getDb();
-    const schema = getSchema();
-    const drizzleORM = getDrizzleORM();
-    
-    if (!db || !schema || !drizzleORM) {
+
+    // Validate products exist and have enough stock
+    const productIds = validatedData.items.map(item => item.productId);
+    const productList = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        price: products.price,
+        quantity: products.quantity,
+      })
+      .from(products)
+      .where(inArray(products.id, productIds));
+
+    // Check if all products exist
+    if (productList.length !== productIds.length) {
       return NextResponse.json(
-        { error: 'Database connection not available' },
-        { status: 500 }
+        { error: 'One or more products not found' },
+        { status: 400 }
       );
     }
-    
-    const { orders, orderItems, products } = schema;
-    const { eq, and } = drizzleORM;
 
-    const body = await request.json();
-    const orderData = CreateOrderSchema.parse(body);
-
-    // Validate that all products exist and have sufficient stock
-    for (const item of orderData.items) {
-      const [product] = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, item.productId))
-        .limit(1);
-
+    // Check stock availability
+    for (const item of validatedData.items) {
+      const product = productList.find(p => p.id === item.productId);
       if (!product) {
         return NextResponse.json(
           { error: `Product with ID ${item.productId} not found` },
-          { status: 404 }
+          { status: 400 }
         );
       }
-
-      const availableQuantity = product.quantity || 0;
-      if (availableQuantity < item.quantity) {
+      if (product.quantity < item.quantity) {
         return NextResponse.json(
-          { error: `Insufficient stock for ${product.name}. Available: ${availableQuantity}, Requested: ${item.quantity}` },
+          { error: `Insufficient stock for ${product.name}. Available: ${product.quantity}, Requested: ${item.quantity}` },
           { status: 400 }
         );
       }
     }
 
-    // Create order
-    const orderNumber = generateOrderNumber();
-    const customerName = `${orderData.customerInfo.firstName} ${orderData.customerInfo.lastName}`;
-    const shippingAddress = {
-      firstName: orderData.customerInfo.firstName,
-      lastName: orderData.customerInfo.lastName,
-      address: orderData.customerInfo.address,
-      city: orderData.customerInfo.city,
-      parish: orderData.customerInfo.parish,
-      district: orderData.customerInfo.district,
-      landmark: orderData.customerInfo.landmark,
-      deliveryNotes: orderData.customerInfo.deliveryNotes,
-    };
-    
+    // Generate order number
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
+    // Create the order
     const [newOrder] = await db
       .insert(orders)
       .values({
         orderNumber,
-        customerName,
-        customerEmail: orderData.customerInfo.email || 'no-email@example.com',
-        customerPhone: orderData.customerInfo.phone,
-        shippingAddress,
-        subtotal: orderData.subtotal.toString(),
-        shippingAmount: orderData.deliveryFee.toString(),
-        totalAmount: orderData.total.toString(),
-        paymentMethod: 'cash_on_delivery',
         status: 'pending',
         paymentStatus: 'pending',
+        shippingStatus: 'not_shipped',
+        subtotal: totalAmount.toFixed(2),
+        taxAmount: '0.00',
+        shippingAmount: '0.00',
+        discountAmount: '0.00',
+        totalAmount: totalAmount.toFixed(2),
+        currency: 'UGX',
+        paymentMethod: validatedData.paymentMethod,
+        customerName: validatedData.customerInfo.name,
+        customerEmail: validatedData.customerInfo.email,
+        customerPhone: validatedData.customerInfo.phone,
+        shippingAddress: {
+          address: validatedData.customerInfo.address,
+          city: validatedData.customerInfo.city,
+          postalCode: validatedData.customerInfo.postalCode || '',
+        },
+        billingAddress: {
+          address: validatedData.customerInfo.address,
+          city: validatedData.customerInfo.city,
+          postalCode: validatedData.customerInfo.postalCode || '',
+        },
+        notes: validatedData.notes,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning();
 
     // Create order items and update product quantities
-    for (const item of orderData.items) {
-      // Add order item
-      await db
-        .insert(orderItems)
-        .values({
-          orderId: newOrder.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.price.toString(),
-          totalPrice: (item.price * item.quantity).toString(),
-          productName: item.productName,
-        });
+    const orderItemsData = validatedData.items.map(item => {
+      const product = productList.find(p => p.id === item.productId);
+      return {
+        orderId: newOrder.id,
+        productId: item.productId,
+        productName: product?.name || 'Unknown Product',
+        productSku: '', // We don't have SKU in the current data
+        quantity: item.quantity,
+        unitPrice: item.price,
+        totalPrice: (parseFloat(item.price) * item.quantity).toFixed(2),
+        productSnapshot: {
+          name: product?.name,
+          price: product?.price,
+        },
+      };
+    });
 
-      // Update product quantity
-      const [currentProduct] = await db
-        .select({ quantity: products.quantity })
-        .from(products)
-        .where(eq(products.id, item.productId))
-        .limit(1);
-        
-      const currentQuantity = currentProduct.quantity || 0;
-      await db
-        .update(products)
-        .set({
-          quantity: currentQuantity - item.quantity,
-          updatedAt: new Date(),
-        })
-        .where(eq(products.id, item.productId));
+    await db.insert(orderItems).values(orderItemsData);
+
+    // Update product quantities
+    for (const item of validatedData.items) {
+      const product = productList.find(p => p.id === item.productId);
+      if (product) {
+        await db
+          .update(products)
+          .set({
+            quantity: product.quantity - item.quantity,
+            updatedAt: new Date(),
+          })
+          .where(eq(products.id, item.productId));
+      }
     }
 
     return NextResponse.json({
       success: true,
-      orderId: newOrder.id,
-      orderNumber: newOrder.orderNumber,
       message: 'Order created successfully',
+      order: {
+        id: newOrder.id,
+        orderNumber: newOrder.orderNumber,
+        totalAmount: newOrder.totalAmount,
+        status: newOrder.status,
+      },
     });
 
   } catch (error) {
-    console.error('Error creating order:', error);
-    
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
-          error: 'Invalid order data', 
-          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
-        },
+        { error: 'Invalid order data', details: error.errors },
         { status: 400 }
       );
     }
 
+    console.error('Error creating order:', error);
     return NextResponse.json(
       { error: 'Failed to create order' },
       { status: 500 }
@@ -185,75 +170,86 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/orders - Get orders (for admin or customer)
 export async function GET(request: NextRequest) {
   try {
-    // Check if we're in build time and return safe response
-    const buildResponse = createBuildSafeResponse({
-      orders: [],
-    });
-    
-    if (buildResponse) {
-      return NextResponse.json(buildResponse);
-    }
-
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const status = searchParams.get('status');
-    const phone = searchParams.get('phone');
-
-    // Add pagination
-    const offset = (page - 1) * limit;
     
-    // Build query with conditions
-    let ordersList;
-    if (status && phone) {
-      ordersList = await db
-        .select()
-        .from(orders)
-        .where(and(eq(orders.status, status as any), eq(orders.customerPhone, phone)))
-        .orderBy(orders.createdAt)
-        .limit(limit)
-        .offset(offset);
-    } else if (status) {
-      ordersList = await db
-        .select()
-        .from(orders)
-        .where(eq(orders.status, status as any))
-        .orderBy(orders.createdAt)
-        .limit(limit)
-        .offset(offset);
-    } else if (phone) {
-      ordersList = await db
-        .select()
-        .from(orders)
-        .where(eq(orders.customerPhone, phone))
-        .orderBy(orders.createdAt)
-        .limit(limit)
-        .offset(offset);
-    } else {
-      ordersList = await db
-        .select()
-        .from(orders)
-        .orderBy(orders.createdAt)
-        .limit(limit)
-        .offset(offset);
+    // Pagination
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
+    const offset = (page - 1) * limit;
+
+    // Filters
+    const status = searchParams.get('status');
+    const paymentStatus = searchParams.get('paymentStatus');
+    const search = searchParams.get('search');
+
+    // Build conditions
+    const conditions = [];
+    
+    if (status) {
+      conditions.push(eq(orders.status, status));
+    }
+    
+    if (paymentStatus) {
+      conditions.push(eq(orders.paymentStatus, paymentStatus));
     }
 
-    // Get total count for pagination
-    const totalQuery = db.select().from(orders);
-    const total = (await totalQuery).length;
+    // Build base query
+    let query = db
+      .select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        status: orders.status,
+        paymentStatus: orders.paymentStatus,
+        shippingStatus: orders.shippingStatus,
+        subtotal: orders.subtotal,
+        totalAmount: orders.totalAmount,
+        currency: orders.currency,
+        paymentMethod: orders.paymentMethod,
+        customerName: orders.customerName,
+        customerEmail: orders.customerEmail,
+        customerPhone: orders.customerPhone,
+        shippingAddress: orders.shippingAddress,
+        billingAddress: orders.billingAddress,
+        notes: orders.notes,
+        createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
+      })
+      .from(orders);
+
+    // Apply conditions
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    // Apply ordering and pagination
+    const result = await query
+      .orderBy(desc(orders.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Get total count
+    let countQuery = db.select({ count: count() }).from(orders);
+    if (conditions.length > 0) {
+      countQuery = countQuery.where(and(...conditions));
+    }
+    const [{ count: totalCount }] = await countQuery;
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
     return NextResponse.json({
-      orders: ordersList,
+      orders: result,
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
+        total: totalCount,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
       },
     });
 

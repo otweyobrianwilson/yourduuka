@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Product } from '@/lib/db/schema';
 import { useCartStore } from '@/lib/stores/cart-store';
+import { useWishlistStore } from '@/lib/stores/wishlist-store';
 import { Button } from '@/components/ui/button';
 import { Heart, ShoppingCart, Eye, Star } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -15,9 +16,11 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, className = '' }: ProductCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
   const [imageError, setImageError] = useState(false);
   const { addItem } = useCartStore();
+  const { toggleItem, isInWishlist, isHydrated } = useWishlistStore();
+  
+  const isLiked = isHydrated ? isInWishlist(product.id) : false;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -29,8 +32,10 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
   const handleToggleLike = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsLiked(!isLiked);
-    toast.success(isLiked ? 'Removed from wishlist' : 'Added to wishlist!');
+    if (isHydrated) {
+      toggleItem(product);
+      toast.success(isLiked ? 'Removed from wishlist' : 'Added to wishlist!');
+    }
   };
 
   const productImage = product.images && Array.isArray(product.images) && product.images.length > 0 

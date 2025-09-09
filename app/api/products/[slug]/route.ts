@@ -1,34 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, getSchema, getDrizzleORM } from '@/lib/db/safe-drizzle';
-import { createBuildSafeResponse } from '@/lib/build-utils';
+import { db, schema } from '@/lib/db/connection';
+import { eq, and, ne } from 'drizzle-orm';
+import { z } from 'zod';
+
+const { products, categories } = schema;
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    // Check if we're in build time and return safe response
-    const buildResponse = createBuildSafeResponse(null);
-    
-    if (buildResponse) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
-    }
-    
-    // Get safe database references
-    const db = getDb();
-    const schema = getSchema();
-    const drizzleORM = getDrizzleORM();
-    
-    if (!db || !schema || !drizzleORM) {
-      return NextResponse.json(
-        { error: 'Database connection not available' },
-        { status: 500 }
-      );
-    }
-    
-    const { products, categories } = schema;
-    const { eq, and, ne } = drizzleORM;
-
     const { slug } = await params;
 
     // Get product with category information
@@ -117,82 +98,77 @@ export async function GET(
   }
 }
 
+// Admin product update endpoint
+const updateProductSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  shortDescription: z.string().optional(),
+  price: z.string().regex(/^\d+(\.\d{2})?$/).optional(),
+  comparePrice: z.string().regex(/^\d+(\.\d{2})?$/).optional().nullable(),
+  sku: z.string().optional(),
+  quantity: z.number().int().min(0).optional(),
+  images: z.array(z.string().url()).optional(),
+  brand: z.string().optional(),
+  material: z.string().optional(),
+  color: z.string().optional(),
+  size: z.string().optional(),
+  gender: z.enum(['Men', 'Women', 'Unisex']).optional(),
+  categoryId: z.number().int().optional(),
+  isFeatured: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    // Check if we're in build time and return safe response
-    const buildResponse = createBuildSafeResponse({
-      success: true,
-      message: 'Product updated',
-    });
-    
-    if (buildResponse) {
-      return NextResponse.json(buildResponse);
-    }
-    
-    // Get safe database references
-    const db = getDb();
-    const schema = getSchema();
-    const drizzleORM = getDrizzleORM();
-    
-    if (!db || !schema || !drizzleORM) {
-      return NextResponse.json(
-        { error: 'Database connection not available' },
-        { status: 500 }
-      );
-    }
-    
-    const { products } = schema;
-    const { eq } = drizzleORM;
-
-    // This would typically require admin authentication
     const { slug } = await params;
+    
+    // TODO: Add admin authentication check here
+    // For now, we'll allow updates but this should be protected
+    
     const body = await request.json();
+    const validatedData = updateProductSchema.parse(body);
 
-    // Update product
-    const [updatedProduct] = await db
-      .update(products)
-      .set({
-        name: body.name,
-        slug: body.slug,
-        description: body.description,
-        shortDescription: body.shortDescription,
-        price: body.price,
-        comparePrice: body.comparePrice,
-        costPrice: body.costPrice,
-        sku: body.sku,
-        quantity: body.quantity,
-        weight: body.weight,
-        dimensions: body.dimensions,
-        images: body.images,
-        categoryId: body.categoryId,
-        brand: body.brand,
-        material: body.material,
-        color: body.color,
-        size: body.size,
-        gender: body.gender,
-        isActive: body.isActive,
-        isFeatured: body.isFeatured,
-        seoTitle: body.seoTitle,
-        seoDescription: body.seoDescription,
-        tags: body.tags,
-        updatedAt: new Date(),
-      })
-      .where(eq(products.slug, slug))
-      .returning();
+    // Check if product exists
+    const [existingProduct] = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(eq(products.slug, slug));
 
-    if (!updatedProduct) {
+    if (!existingProduct) {
       return NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(updatedProduct);
+    // Update product
+    const [updatedProduct] = await db
+      .update(products)
+      .set({
+        ...validatedData,
+        updatedAt: new Date(),
+      })
+      .where(eq(products.slug, slug))
+      .returning();
+
+    return NextResponse.json({
+      success: true,
+      message: 'Product updated successfully',
+      product: updatedProduct,
+    });
 
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid product data', details: error.errors },
+        { status: 400 }
+      );
+    }
+
     console.error('Error updating product:', error);
     return NextResponse.json(
       { error: 'Failed to update product' },
@@ -206,10 +182,26 @@ export async function DELETE(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    // This would typically require admin authentication
     const { slug } = await params;
+    
+    // TODO: Add admin authentication check here
+    // For now, we'll allow deletions but this should be protected
+    
+    // Check if product exists
+    const [existingProduct] = await db
+      .select({ id: products.id, name: products.name })
+      .from(products)
+      .where(eq(products.slug, slug));
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      );
+    }
 
     // Soft delete by setting isActive to false
+    // This preserves data integrity and allows for recovery
     const [deletedProduct] = await db
       .update(products)
       .set({
@@ -217,21 +209,18 @@ export async function DELETE(
         updatedAt: new Date(),
       })
       .where(eq(products.slug, slug))
-      .returning();
+      .returning({ id: products.id, name: products.name, isActive: products.isActive });
 
-    if (!deletedProduct) {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ message: 'Product deleted successfully' });
+    return NextResponse.json({
+      success: true,
+      message: `Product "${deletedProduct.name}" has been deactivated`,
+      product: deletedProduct,
+    });
 
   } catch (error) {
     console.error('Error deleting product:', error);
     return NextResponse.json(
-      { error: 'Failed to delete product' },
+      { error: 'Failed to delete product', details: error.message },
       { status: 500 }
     );
   }
