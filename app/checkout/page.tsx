@@ -86,18 +86,25 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
+      // Transform customer info to match API schema
+      const apiCustomerInfo = {
+        name: `${customerInfo.firstName} ${customerInfo.lastName}`.trim(),
+        email: customerInfo.email || 'noemail@yourduuka.com', // API requires email
+        phone: customerInfo.phone,
+        address: `${customerInfo.address}, ${customerInfo.landmark}`.replace(', ,', ',').replace(/,$/, ''),
+        city: `${customerInfo.city}, ${customerInfo.district}`,
+        postalCode: customerInfo.parish || '',
+      };
+
       const orderData = {
-        customerInfo,
+        customerInfo: apiCustomerInfo,
         items: items.map(item => ({
           productId: item.product.id,
           quantity: item.quantity,
-          price: item.price,
-          productName: item.product.name,
+          price: item.price.toString(),
         })),
-        subtotal: total,
-        deliveryFee,
-        total: finalTotal,
         paymentMethod: 'cash_on_delivery',
+        notes: customerInfo.deliveryNotes || undefined,
       };
 
       const response = await fetch('/api/orders', {
@@ -118,7 +125,7 @@ export default function CheckoutPage() {
       await clearCart();
       
       toast.success('Order placed successfully!');
-      router.push(`/orders/${result.orderId}/confirmation`);
+      router.push(`/orders/${result.order.id}/confirmation`);
 
     } catch (error) {
       console.error('Error placing order:', error);
